@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"yunion.io/yunioncloud/pkg/jsonutils"
-	"yunion.io/yunioncloud/pkg/util/httputils"
+	"github.com/yunionio/jsonutils"
+	"github.com/yunionio/pkg/util/httputils"
 )
 
 func HTTPError(w http.ResponseWriter, msg string, statusCode int, class string) {
