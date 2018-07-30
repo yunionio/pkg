@@ -4,6 +4,28 @@ import (
 	"testing"
 )
 
+func TestUnquote(t *testing.T) {
+	cases := []struct {
+		in   string
+		want string
+	}{
+		{`abc`, `abc`},
+		{`"abc"`, `abc`},
+		{`"'\"abc\"'"`, `'"abc"'`},
+		{`'"\'abc\'"'`, `"'abc'"`},
+		{`hello\nworld`, `hello\nworld`},
+		{`"hello\nworld"`, "hello\nworld"},
+		{`'hello\nworld'`, "hello\nworld"},
+		{"hello\nworld", "hello"},
+		{`"\thello\n\rworld"` + "ether\nether", "\thello\n\rworld"},
+	}
+	for _, c := range cases {
+		if got := Unquote(c.in); got != c.want {
+			t.Errorf("Unquote(%q) got %q, want %q", c.in, got, c.want)
+		}
+	}
+}
+
 func TestCamel2Kebab(t *testing.T) {
 	cases := []struct {
 		in   string
