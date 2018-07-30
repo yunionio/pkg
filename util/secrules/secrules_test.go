@@ -6,14 +6,16 @@ import (
 
 func TestIsFunction(t *testing.T) {
 	cases := []struct {
-		s          string
-		s2         string
-		bad        bool
-		isAllowAny bool
+		s           string
+		s2          string
+		bad         bool
+		isWildMatch bool
 	}{
-		{s: "in:allow any", isAllowAny: true},
-		{s: "out:allow any", isAllowAny: true},
-		{s: "in:allow 0.0.0.0/0 any", s2: "in:allow any", isAllowAny: true},
+		{s: "in:allow any", isWildMatch: true},
+		{s: "out:allow any", isWildMatch: true},
+		{s: "in:deny any", isWildMatch: true},
+		{s: "out:deny any", isWildMatch: true},
+		{s: "in:allow 0.0.0.0/0 any", s2: "in:allow any", isWildMatch: true},
 		{s: "in:allow 0.0.0.0/0 tcp", s2: "in:allow tcp"},
 		{s: "in:allow 0.0.0.0/0 udp", s2: "in:allow udp"},
 		{s: "in:allow 0.0.0.0/0 icmp", s2: "in:allow icmp"},
@@ -53,8 +55,9 @@ func TestIsFunction(t *testing.T) {
 		} else if len(c.s2) > 0 && c.s2 != r.String() {
 			t.Errorf("rule: %s: parsed but wrong:\n\twant: %s,\n\tgot: %s",
 				c.s, c.s2, r.String())
-		} else if c.isAllowAny != r.IsAllowAny() {
-			t.Errorf("rule: %s: isAllowAny mismatch: want: %v, got: %v", c.s, c.isAllowAny, r.IsAllowAny())
+		} else if c.isWildMatch != r.IsWildMatch() {
+			t.Errorf("rule: %s: wildMatch mismatch: want: %v, got: %v",
+				c.s, c.isWildMatch, r.IsWildMatch())
 		}
 	}
 

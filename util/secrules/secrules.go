@@ -28,14 +28,29 @@ import (
 	"github.com/yunionio/pkg/util/regutils"
 )
 
+type TSecurityRuleDirection string
+
+const (
+	SecurityRuleIngress = TSecurityRuleDirection("in")
+	SecurityRuleEgress  = TSecurityRuleDirection("out")
+)
+
+type TSecurityRuleAction string
+
+const (
+	SecurityRuleAllow = TSecurityRuleAction("allow")
+	SecurityRuleDeny  = TSecurityRuleAction("deny")
+)
+
 type SecurityRule struct {
-	Action    string
+	Priority  int // [1, 100]
+	Action    TSecurityRuleAction
 	IPNet     *net.IPNet
 	Protocol  string
-	Direction string
-	PortStart uint16
-	PortEnd   uint16
-	Ports     []uint16
+	Direction TSecurityRuleDirection
+	PortStart int
+	PortEnd   int
+	Ports     []int
 }
 
 const (
@@ -47,8 +62,9 @@ const SEG_IP = 1
 const SEG_PROTO = 2
 const SEG_PORT = 3
 const SEG_END = 4
-const ACTION_ALLOW = "allow"
-const ACTION_DENY = "deny"
+
+// const ACTION_ALLOW = "allow"
+// const ACTION_DENY = "deny"
 const PROTO_ANY = "any"
 const PROTO_TCP = "tcp"
 const PROTO_UDP = "udp"
@@ -64,19 +80,19 @@ var (
 	ErrInvalidPort      = errors.New("invalid port")
 )
 
-func parsePortString(ps string) (uint16, error) {
+func parsePortString(ps string) (int, error) {
 	p, err := strconv.ParseUint(ps, 10, 16)
 	if err != nil || p == 0 {
 		return 0, ErrInvalidPort
 	}
-	return uint16(p), nil
+	return int(p), nil
 }
 
 func ParseSecurityRule(pattern string) (*SecurityRule, error) {
 	rule := &SecurityRule{}
-	for _, direction := range []string{DIR_IN, DIR_OUT} {
-		if pattern[:len(direction)+1] == direction+":" {
-			rule.Direction, pattern = direction, strings.Replace(pattern, direction+":", "", -1)
+	for _, direction := range []TSecurityRuleDirection{SecurityRuleIngress, SecurityRuleEgress} {
+		if pattern[:len(direction)+1] == string(direction)+":" {
+			rule.Direction, pattern = direction, strings.Replace(pattern, string(direction)+":", "", -1)
 			break
 		}
 	}
@@ -93,8 +109,12 @@ func ParseSecurityRule(pattern string) (*SecurityRule, error) {
 			index++
 		}
 		if status == SEG_ACTION {
-			if seg == ACTION_ALLOW || seg == ACTION_DENY {
-				rule.Action = seg
+			if seg == string(SecurityRuleAllow) || seg == string(SecurityRuleDeny) {
+				if seg == string(SecurityRuleAllow) {
+					rule.Action = SecurityRuleAllow
+				} else {
+					rule.Action = SecurityRuleDeny
+				}
 				status = SEG_IP
 			} else {
 				return nil, ErrInvalidAction
@@ -138,7 +158,7 @@ func ParseSecurityRule(pattern string) (*SecurityRule, error) {
 				status = SEG_END
 			} else if idx := strings.Index(seg, "-"); idx > -1 {
 				segs := strings.SplitN(seg, "-", 2)
-				var ps, pe uint16
+				var ps, pe int
 				var err error
 				if ps, err = parsePortString(segs[0]); err != nil {
 					return nil, ErrInvalidPortRange
@@ -152,7 +172,7 @@ func ParseSecurityRule(pattern string) (*SecurityRule, error) {
 				rule.PortStart = ps
 				rule.PortEnd = pe
 			} else if idx := strings.Index(seg, ","); idx > -1 {
-				ports := []uint16{}
+				ports := make([]int, 0)
 				segs := strings.Split(seg, ",")
 				for _, seg := range segs {
 					p, err := parsePortString(seg)
@@ -175,7 +195,7 @@ func ParseSecurityRule(pattern string) (*SecurityRule, error) {
 	return rule, nil
 }
 
-func (rule *SecurityRule) IsAllowAny() bool {
+func (rule *SecurityRule) IsWildMatch() bool {
 	return rule.IPNet.String() == "0.0.0.0/0" &&
 		rule.Protocol == PROTO_ANY &&
 		len(rule.Ports) == 0 &&
@@ -185,7 +205,7 @@ func (rule *SecurityRule) IsAllowAny() bool {
 
 func (rule *SecurityRule) String() (result string) {
 	s := []string{}
-	s = append(s, rule.Direction+":"+rule.Action)
+	s = append(s, string(rule.Direction)+":"+string(rule.Action))
 	cidr := rule.IPNet.String()
 	if cidr != "0.0.0.0/0" {
 		if ones, _ := rule.IPNet.Mask.Size(); ones < 32 {

@@ -5,7 +5,6 @@ import (
 	"math/rand"
 	"strconv"
 	"strings"
-
 	"github.com/yunionio/pkg/util/regutils"
 )
 
@@ -153,6 +152,10 @@ func (ar IPV4AddrRange) Contains(ip IPV4Addr) bool {
 	return (ip >= ar.start) && (ip <= ar.end)
 }
 
+func (ar IPV4AddrRange) ContainsRange(ar2 IPV4AddrRange) bool {
+	return ar.start <= ar2.start && ar.end >= ar2.end
+}
+
 func (ar IPV4AddrRange) Random() IPV4Addr {
 	return IPV4Addr(uint32(ar.start) + uint32(rand.Intn(int(uint32(ar.end)-uint32(ar.start)))))
 }
@@ -163,6 +166,22 @@ func (ar IPV4AddrRange) AddressCount() int {
 
 func (ar IPV4AddrRange) String() string {
 	return fmt.Sprintf("%s-%s", ar.start, ar.end)
+}
+
+func (ar IPV4AddrRange) StartIp() IPV4Addr {
+	return ar.start
+}
+
+func (ar IPV4AddrRange) EndIp() IPV4Addr {
+	return ar.end
+}
+
+func (ar IPV4AddrRange) IsOverlap(ar2 IPV4AddrRange) bool {
+	if ar.start > ar2.end || ar.end < ar2.start {
+		return false
+	} else {
+		return true
+	}
 }
 
 func Masklen2Mask(maskLen int8) IPV4Addr {

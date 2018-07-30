@@ -20,12 +20,14 @@ func AddModelDispatcher(prefix string, app *appsrv.Application, manager IModelDi
 	app.AddHandler2("GET",
 		fmt.Sprintf("%s/%s", prefix, manager.KeywordPlural()),
 		manager.Filter(listHandler), metadata, "list", tags)
-	ctx := manager.ContextKeywordPlural()
+	ctxs := manager.ContextKeywordPlural()
 	// list in context
-	if len(ctx) > 0 {
-		app.AddHandler2("GET",
-			fmt.Sprintf("%s/%s/<resid>/%s", prefix, ctx, manager.KeywordPlural()),
-			manager.Filter(listInContextHandler), metadata, "list", tags)
+	if ctxs != nil && len(ctxs) > 0 {
+		for _, ctx := range ctxs {
+			app.AddHandler2("GET",
+				fmt.Sprintf("%s/%s/<resid>/%s", prefix, ctx, manager.KeywordPlural()),
+				manager.Filter(listInContextHandler), metadata, "list", tags)
+		}
 	}
 	// Get
 	app.AddHandler2("GET",
@@ -41,10 +43,12 @@ func AddModelDispatcher(prefix string, app *appsrv.Application, manager IModelDi
 		fmt.Sprintf("%s/%s", prefix, manager.KeywordPlural()),
 		manager.Filter(createHandler), metadata, "create", tags)
 	// create in context
-	if len(ctx) > 0 {
-		app.AddHandler2("POST",
-			fmt.Sprintf("%s/%s/<resid>/%s", prefix, ctx, manager.KeywordPlural()),
-			manager.Filter(createInContextHandler), metadata, "create", tags)
+	if ctxs != nil && len(ctxs) > 0 {
+		for _, ctx := range ctxs {
+			app.AddHandler2("POST",
+				fmt.Sprintf("%s/%s/<resid>/%s", prefix, ctx, manager.KeywordPlural()),
+				manager.Filter(createInContextHandler), metadata, "create", tags)
+		}
 	}
 	// batchPerformAction
 	app.AddHandler2("POST",

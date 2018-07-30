@@ -14,9 +14,11 @@ type IMiddlewareFilter interface {
 
 type IModelDispatchHandler interface {
 	IMiddlewareFilter
+
 	Keyword() string
 	KeywordPlural() string
-	ContextKeywordPlural() string
+	ContextKeywordPlural() []string
+
 	List(ctx context.Context, query jsonutils.JSONObject, ctxId string) (*modules.ListResult, error)
 	Get(ctx context.Context, idstr string, query jsonutils.JSONObject) (jsonutils.JSONObject, error)
 	GetSpecific(ctx context.Context, idstr string, spec string, query jsonutils.JSONObject) (jsonutils.JSONObject, error)
@@ -32,10 +34,12 @@ type IModelDispatchHandler interface {
 
 type IJointModelDispatchHandler interface {
 	IMiddlewareFilter
+
 	Keyword() string
 	KeywordPlural() string
 	MasterKeywordPlural() string
 	SlaveKeywordPlural() string
+
 	List(ctx context.Context, query jsonutils.JSONObject, ctxId string) (*modules.ListResult, error)
 	ListMasterDescendent(ctx context.Context, idStr string, query jsonutils.JSONObject) (*modules.ListResult, error)
 	ListSlaveDescendent(ctx context.Context, idStr string, query jsonutils.JSONObject) (*modules.ListResult, error)
