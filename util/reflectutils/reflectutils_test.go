@@ -61,3 +61,21 @@ func TestExpandInterface(t *testing.T) {
 		t.Logf("%s", val)
 	}
 }
+
+
+func TestSetStructFieldValue(t *testing.T) {
+	type TestStruct struct {
+		Name string
+	}
+	val := TestStruct{}
+
+	target := "Test Target"
+	if SetStructFieldValue(reflect.Indirect(reflect.ValueOf(&val)), "name", reflect.ValueOf(target)) {
+		if val.Name != target {
+			t.Errorf("Fail to SetStructFieldValue")
+		}
+	} else {
+		t.Errorf("Fail to find struct field")
+	}
+}
+
