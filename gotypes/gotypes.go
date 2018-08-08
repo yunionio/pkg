@@ -176,7 +176,7 @@ func SetValue(value reflect.Value, valStr string) error {
 	default:
 		log.Print(value, valStr)
 		log.Print(value.Type())
-		return fmt.Errorf("!!!Unsupported type: %v", value.Type)
+		return fmt.Errorf("Unsupported type: %v", value.Type())
 	}
 	return nil
 }

@@ -175,7 +175,7 @@ func TestInCollection(t *testing.T) {
 	}
 	for _, c := range cases {
 		if InCollection(c.obj, c.arr) != c.result {
-			t.Errorf("%s in %s != %b", c.obj, c.arr, c.result)
+			t.Errorf("%s in %s != %v", c.obj, c.arr, c.result)
 		}
 	}
 }
