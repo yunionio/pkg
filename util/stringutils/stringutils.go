@@ -26,7 +26,7 @@ func ParseNamePattern(name string) (string, string, int) {
 		pattern = fmt.Sprintf("%s%%0%dd%s", name[:start], end-start, name[end:])
 		patternLen = end - start
 	} else {
-		match = fmt.Sprintf("%s%%", name)
+		match = fmt.Sprintf("%s-%%", name)
 		pattern = fmt.Sprintf("%s-%%d", name)
 	}
 	return match, pattern, patternLen
