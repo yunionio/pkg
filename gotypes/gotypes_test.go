@@ -175,7 +175,7 @@ func TestInCollection(t *testing.T) {
 	}
 	for _, c := range cases {
 		if InCollection(c.obj, c.arr) != c.result {
-			t.Errorf("%s in %s != %b", c.obj, c.arr, c.result)
+			t.Errorf("%s in %s != %v", c.obj, c.arr, c.result)
 		}
 	}
 }
@@ -189,4 +189,52 @@ func TestGetInstanceTypeName(t *testing.T) {
 
 	t.Logf("%s", GetInstanceTypeName(STestStruct{}))
 	t.Logf("%s", GetInstanceTypeName(&STestStruct{}))
+}
+
+func TestIsNil(t *testing.T) {
+	var nilInterface interface{}
+	var nilMap map[int]int
+	var nilSlice []int
+	var nilFunc func()
+	var nilChannel chan int
+	var nilPtr *int
+	nils := []struct {
+		val       interface{}
+		equalsNil bool
+		isNil     bool
+	}{
+		{val: nil, equalsNil: true, isNil: true},
+		{val: nilInterface, equalsNil: true, isNil: true},
+		{val: nilMap, equalsNil: false, isNil: true},
+		{val: nilSlice, equalsNil: false, isNil: true},
+		{val: nilFunc, equalsNil: false, isNil: true},
+		{val: nilChannel, equalsNil: false, isNil: true},
+		{val: nilPtr, equalsNil: false, isNil: true},
+	}
+	for _, n := range nils {
+		var got bool
+		got = n.val == nil
+		if got != n.equalsNil {
+			t.Errorf("equalsNil: want %v, got %v", n.equalsNil, got)
+		}
+		got = IsNil(n.val)
+		if got != n.isNil {
+			t.Errorf("isNil: want %v, got %v", n.isNil, got)
+		}
+	}
+	cases := []struct {
+		val   interface{}
+		isNil bool
+	}{
+		{
+			val:   [0]int{},
+			isNil: false,
+		},
+	}
+	for _, c := range cases {
+		got := IsNil(c.val)
+		if got != c.isNil {
+			t.Errorf("want %v, got %v", c.isNil, got)
+		}
+	}
 }

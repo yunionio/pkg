@@ -2,7 +2,6 @@ package gotypes
 
 import (
 	"fmt"
-	"log"
 	"reflect"
 	"strconv"
 	"strings"
@@ -174,9 +173,7 @@ func SetValue(value reflect.Value, valStr string) error {
 		Float32SliceType, Float64SliceType, StringSliceType:
 		reflect.Append(value, reflect.ValueOf(valStr))
 	default:
-		log.Print(value, valStr)
-		log.Print(value.Type())
-		return fmt.Errorf("!!!Unsupported type: %v", value.Type)
+		return fmt.Errorf("Unsupported type: %v", value.Type())
 	}
 	return nil
 }
@@ -272,7 +269,7 @@ func IsNil(val interface{}) bool {
 	}
 	valValue := reflect.ValueOf(val)
 	switch valValue.Kind() {
-	case reflect.Chan, reflect.Func, reflect.Map, reflect.Ptr, reflect.Array, reflect.Slice, reflect.Interface:
+	case reflect.Chan, reflect.Func, reflect.Map, reflect.Ptr, reflect.Slice, reflect.Interface:
 		return valValue.IsNil()
 	default:
 		return val == nil
