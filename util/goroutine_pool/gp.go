@@ -1,6 +1,4 @@
-// +build !leak
-
-package gp
+package goroutine_pool
 
 import (
 	"sync"
