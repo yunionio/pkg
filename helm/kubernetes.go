@@ -67,8 +67,21 @@ func NewHelmTunnelClient(client kubernetes.Interface, config *rest.Config) (*Hel
 	return cli, err
 }
 
+func ensureTunnelClosed(tunnel *kube.Tunnel) {
+	defer func() {
+		if err := recover(); err != nil {
+			log.Errorf("Ensure kube tunnel closed: %v", err)
+		}
+	}()
+	tunnel.Close()
+}
+
 func (c *HelmTunnelClient) tunnel() error {
 	log.Debugf("Create kubernetes Tunnel")
+	if c.tillerTunnel != nil {
+		oldTunnel := c.tillerTunnel
+		ensureTunnelClosed(oldTunnel)
+	}
 	tillerTunnel, err := portforwarder.New("kube-system", c.k8sClient, c.k8sConfig)
 	if err != nil {
 		return fmt.Errorf("create tunnel failed: %v", err)
@@ -93,7 +106,6 @@ func (c *HelmTunnelClient) healthCheck() {
 		return
 	}
 	log.Errorf("Tiller not health: %v, start reconnect...", err)
-	c.tillerTunnel.Close()
 	err = c.tunnel()
 	if err != nil {
 		log.Errorf("Reconnect tiller error: %v", err)
@@ -114,15 +126,25 @@ func NewHelmClientsManager(configMap K8sRegionConfig) *HelmClientsManager {
 	}
 	m.Clients = make(map[string]*HelmTunnelClient)
 	for region := range configMap {
-		cli, err := m.newHelmClient(region)
-		if err != nil {
-			log.Errorf("New helm client error: %v", err)
-			continue
-		}
-		m.Clients[region] = cli
-		go cli.StartHealthCheck()
+		go m.startHelmClient(region)
 	}
 	return m
+}
+
+func (m *HelmClientsManager) startHelmClient(regionName string) {
+	var cli *HelmTunnelClient
+	var err error
+	for {
+		log.Infof("Start new region %q helm client...", regionName)
+		cli, err = m.newHelmClient(regionName)
+		if err == nil {
+			break
+		}
+		log.Errorf("New helm client error: %v", err)
+		time.Sleep(time.Second * 30)
+	}
+	m.Clients[regionName] = cli
+	cli.StartHealthCheck()
 }
 
 func (m *HelmClientsManager) newHelmClient(regionName string) (*HelmTunnelClient, error) {
