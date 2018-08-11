@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/yunionio/pkg/utils"
+	"yunion.io/x/pkg/utils"
 )
 
 const (

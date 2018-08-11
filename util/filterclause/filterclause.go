@@ -5,9 +5,9 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/yunionio/log"
-	"github.com/yunionio/pkg/utils"
-	"github.com/yunionio/sqlchemy"
+	"yunion.io/x/log"
+	"yunion.io/x/pkg/utils"
+	"yunion.io/x/sqlchemy"
 )
 
 type SFilterClause struct {

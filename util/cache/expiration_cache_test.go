@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/yunionio/pkg/util/clock"
-	"github.com/yunionio/pkg/util/sets"
-	"github.com/yunionio/pkg/util/wait"
+	"yunion.io/x/pkg/util/clock"
+	"yunion.io/x/pkg/util/sets"
+	"yunion.io/x/pkg/util/wait"
 )
 
 func TestTTLExpirationBasic(t *testing.T) {

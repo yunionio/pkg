@@ -17,7 +17,7 @@ import (
 	"k8s.io/helm/pkg/helm/environment"
 	"k8s.io/helm/pkg/repo"
 
-	"github.com/yunionio/log"
+	"yunion.io/x/log"
 )
 
 const (

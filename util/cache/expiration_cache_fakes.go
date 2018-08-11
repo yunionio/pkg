@@ -1,8 +1,8 @@
 package cache
 
 import (
-	"github.com/yunionio/pkg/util/clock"
-	"github.com/yunionio/pkg/util/sets"
+	"yunion.io/x/pkg/util/clock"
+	"yunion.io/x/pkg/util/sets"
 )
 
 type fakeThreadSafeMap struct {

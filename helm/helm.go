@@ -31,11 +31,11 @@ import (
 	"k8s.io/helm/pkg/repo"
 	"k8s.io/helm/pkg/strvals"
 
-	"github.com/yunionio/jsonutils"
-	"github.com/yunionio/log"
-	yerrors "github.com/yunionio/pkg/util/errors"
-	"github.com/yunionio/pkg/util/sets"
-	"github.com/yunionio/pkg/util/workqueue"
+	"yunion.io/x/jsonutils"
+	"yunion.io/x/log"
+	yerrors "yunion.io/x/pkg/util/errors"
+	"yunion.io/x/pkg/util/sets"
+	"yunion.io/x/pkg/util/workqueue"
 )
 
 const (

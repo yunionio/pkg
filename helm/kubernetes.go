@@ -12,9 +12,9 @@ import (
 	"k8s.io/helm/pkg/helm/portforwarder"
 	"k8s.io/helm/pkg/kube"
 
-	"github.com/yunionio/log"
-	"github.com/yunionio/pkg/util/runtime"
-	"github.com/yunionio/pkg/util/wait"
+	"yunion.io/x/log"
+	"yunion.io/x/pkg/util/runtime"
+	"yunion.io/x/pkg/util/wait"
 )
 
 type K8sRegionConfig map[string]string

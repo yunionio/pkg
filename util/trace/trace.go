@@ -6,7 +6,7 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/yunionio/log"
+	"yunion.io/x/log"
 )
 
 type traceStep struct {

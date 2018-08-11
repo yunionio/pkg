@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/yunionio/pkg/util/regutils"
+	"yunion.io/x/pkg/util/regutils"
 )
 
 type TSecurityRuleDirection string

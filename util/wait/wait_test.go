@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/yunionio/pkg/util/runtime"
+	"yunion.io/x/pkg/util/runtime"
 )
 
 func TestUntil(t *testing.T) {

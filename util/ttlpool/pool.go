@@ -5,8 +5,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/yunionio/log"
-	"github.com/yunionio/pkg/util/cache"
+	"yunion.io/x/log"
+	"yunion.io/x/pkg/util/cache"
 )
 
 type Item interface {

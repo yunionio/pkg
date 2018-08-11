@@ -3,7 +3,7 @@ package cache
 import (
 	"testing"
 
-	"github.com/yunionio/pkg/util/sets"
+	"yunion.io/x/pkg/util/sets"
 )
 
 // Test public interface
