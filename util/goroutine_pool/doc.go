@@ -1,1 +1,1 @@
-package goroutine_pool // import "yunion.io/x/pkg/util/goroutine_pool"
+package gp // import "yunion.io/x/pkg/util/gp"
