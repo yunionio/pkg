@@ -5,7 +5,7 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/yunionio/pkg/util/runtime"
+	"yunion.io/x/pkg/util/runtime"
 )
 
 // For any test of the style:

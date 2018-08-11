@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/golang-plus/uuid"
-	"github.com/yunionio/jsonutils"
-	"github.com/yunionio/pkg/util/timeutils"
+	"yunion.io/x/jsonutils"
+	"yunion.io/x/pkg/util/timeutils"
 )
 
 func ParseNamePattern(name string) (string, string, int) {

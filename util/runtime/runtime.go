@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/yunionio/log"
+	"yunion.io/x/log"
 )
 
 var (

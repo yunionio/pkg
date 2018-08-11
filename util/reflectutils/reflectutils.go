@@ -3,8 +3,8 @@ package reflectutils
 import (
 	"reflect"
 
-	"github.com/yunionio/pkg/gotypes"
-	"github.com/yunionio/pkg/utils"
+	"yunion.io/x/pkg/gotypes"
+	"yunion.io/x/pkg/utils"
 )
 
 func GetStructFieldName(field *reflect.StructField) string {

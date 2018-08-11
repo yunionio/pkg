@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/yunionio/log"
+	"yunion.io/x/log"
 )
 
 type testObj struct {

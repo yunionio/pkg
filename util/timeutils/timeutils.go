@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/yunionio/pkg/util/regutils"
+	"yunion.io/x/pkg/util/regutils"
 )
 
 func UtcNow() time.Time {

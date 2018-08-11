@@ -3,7 +3,7 @@ package fifoutils
 import (
 	"errors"
 
-	"github.com/yunionio/log"
+	"yunion.io/x/log"
 )
 
 var ErrEmpty error

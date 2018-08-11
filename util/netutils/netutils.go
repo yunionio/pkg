@@ -5,7 +5,7 @@ import (
 	"math/rand"
 	"strconv"
 	"strings"
-	"github.com/yunionio/pkg/util/regutils"
+	"yunion.io/x/pkg/util/regutils"
 )
 
 const macChars = "0123456789abcdef"

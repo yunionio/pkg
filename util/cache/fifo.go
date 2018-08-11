@@ -4,7 +4,7 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/yunionio/pkg/util/sets"
+	"yunion.io/x/pkg/util/sets"
 )
 
 // PopProcessFunc is passed to Pop() method of Queue interface.

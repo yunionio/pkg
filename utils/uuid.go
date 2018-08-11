@@ -4,7 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 
-	"github.com/yunionio/log"
+	"yunion.io/x/log"
 )
 
 func GenRequestId(bytes int) string {

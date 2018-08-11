@@ -4,8 +4,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/yunionio/log"
-	"github.com/yunionio/pkg/util/clock"
+	"yunion.io/x/log"
+	"yunion.io/x/pkg/util/clock"
 )
 
 // ExpirationCache implements the store interface

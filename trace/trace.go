@@ -6,9 +6,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/yunionio/log"
-	"github.com/yunionio/pkg/util/timeutils"
-	"github.com/yunionio/pkg/utils"
+	"yunion.io/x/log"
+	"yunion.io/x/pkg/util/timeutils"
+	"yunion.io/x/pkg/utils"
 )
 
 type TraceKind string

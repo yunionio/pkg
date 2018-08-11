@@ -3,7 +3,7 @@ package cache
 import (
 	"fmt"
 
-	"github.com/yunionio/pkg/util/sets"
+	"yunion.io/x/pkg/util/sets"
 )
 
 // Indexer is a storage interface that lets you list objects using multiple indexing functions
