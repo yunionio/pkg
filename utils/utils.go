@@ -149,3 +149,48 @@ func FloatRound(num float64, precision int) float64 {
 	num = temp
 	return num
 }
+
+func ArgsStringToArray(s string) []string {
+	var args, i, j = make([]string, 0), 0, 0
+	for i < len(s) {
+		switch s[i] {
+		case ' ':
+			if i > j {
+				args = append(args, s[j:i])
+				j = i
+			}
+			i++
+			j++
+		case '"':
+			i += 1
+			for i < len(s) && s[i] != '"' {
+				i++
+			}
+			if i < len(s) {
+				args = append(args, s[j+1:i])
+			} else {
+				args = append(args, s[j+1:])
+			}
+			i += 1
+			j = i
+		case '\'':
+			i += 1
+			for i < len(s) && s[i] != '\'' {
+				i++
+			}
+			if i < len(s) {
+				args = append(args, s[j+1:i])
+			} else {
+				args = append(args, s[j+1:])
+			}
+			i += 1
+			j = i
+		default:
+			i++
+		}
+	}
+	if j < len(s) {
+		args = append(args, s[j:])
+	}
+	return args
+}
