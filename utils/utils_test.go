@@ -113,6 +113,21 @@ func TestArgsStringToArray(t *testing.T) {
 			args: args{"server-monitor  id \"info block\""},
 			want: []string{"server-monitor", "id", "info block"},
 		},
+		{
+			name: "test x 'aa'bb bb'aa' aa'bb'cc   dd\"aa\"cc'bb'ee   ",
+			args: args{"x 'aa'bb bb'aa' aa'bb'cc   dd\"aa\"cc'bb'ee   "},
+			want: []string{"x", "aabb", "bbaa", "aabbcc", "ddaaccbbee"},
+		},
+		{
+			name: "test 0 '1'2\"3 4\"5 6",
+			args: args{"0 '1'2\"3 4\"5 6"},
+			want: []string{"0", "123 45", "6"},
+		},
+		{
+			name: "test abc\"'\"$'\"\"\"",
+			args: args{"abc\"'\"$\"\"\""},
+			want: []string{"abc'$\""},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
