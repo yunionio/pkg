@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"reflect"
 	"testing"
 )
 
@@ -88,6 +89,50 @@ func TestFloatRound(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := FloatRound(tt.args.num, tt.args.precision); got != tt.want {
 				t.Errorf("FloatRound() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestArgsStringToArray(t *testing.T) {
+	type args struct {
+		s string
+	}
+	tests := []struct {
+		name string
+		args args
+		want []string
+	}{
+		{
+			name: "test server-list   --details",
+			args: args{"server-list   --details"},
+			want: []string{"server-list", "--details"},
+		},
+		{
+			name: "test server-monitor  id \"info block\"",
+			args: args{"server-monitor  id \"info block\""},
+			want: []string{"server-monitor", "id", "info block"},
+		},
+		{
+			name: "test x 'aa'bb bb'aa' aa'bb'cc   dd\"aa\"cc'bb'ee   ",
+			args: args{"x 'aa'bb bb'aa' aa'bb'cc   dd\"aa\"cc'bb'ee   "},
+			want: []string{"x", "aabb", "bbaa", "aabbcc", "ddaaccbbee"},
+		},
+		{
+			name: "test 0 '1'2\"3 4\"5 6",
+			args: args{"0 '1'2\"3 4\"5 6"},
+			want: []string{"0", "123 45", "6"},
+		},
+		{
+			name: "test abc\"'\"$'\"\"\"",
+			args: args{"abc\"'\"$\"\"\""},
+			want: []string{"abc'$\""},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := ArgsStringToArray(tt.args.s); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("ArgsStringToArray() = %v, want %v", got, tt.want)
 			}
 		})
 	}
