@@ -14,13 +14,22 @@ func TestGetString(t *testing.T) {
 			[][]string{
 				{"a", "b"},
 				{"c", "d"},
+				{"e", "e\n"},
+				{"f", "f\nf"},
+				{"g", "g\ng\n"},
 			},
 			`+---+---+
 | A | B |
 +---+---+
 | a | b |
 | c | d |
-+---+---+`,
+| e | e |
+| f | f |
+|   | f |
+| g | g |
+|   | g |
++---+---+
+`,
 		},
 		{[]string{"A", "B"}, [][]string{}, ""},
 	}
