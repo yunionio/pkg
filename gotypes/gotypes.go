@@ -120,6 +120,15 @@ func ParseValue(val string, tp reflect.Type) (reflect.Value, error) {
 		}
 	case reflect.String:
 		return reflect.ValueOf(val), nil
+	case reflect.Ptr:
+		tpElem := tp.Elem()
+		rv, err := ParseValue(val, tpElem)
+		if err != nil {
+			return reflect.ValueOf(val), fmt.Errorf("Cannot parse %s to %s", val, tp)
+		}
+		rvv := reflect.New(tpElem)
+		rvv.Elem().Set(rv)
+		return rvv, nil
 	default:
 		if tp == TimeType {
 			tm, e := timeutils.ParseTimeStr(val)

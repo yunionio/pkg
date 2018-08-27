@@ -242,7 +242,7 @@ func TestIsNil(t *testing.T) {
 	}
 }
 
-func TestSetValuePtr(t *testing.T) {
+func TestParseSetValuePtr(t *testing.T) {
 	v := &struct {
 		BoolPtr      *bool
 		IntPtr       *int
@@ -281,14 +281,27 @@ func TestSetValuePtr(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			rvv := rv.FieldByName(c.name)
-			err := SetValue(rvv, c.valStr)
-			if err != nil {
-				t.Fatalf("SetValue(%q, %q): failed: %s", c.name, c.valStr, err)
-			}
-			if got := rvv.Interface(); reflect.DeepEqual(got, c.want) {
-				t.Fatalf("SetValue(%q, %q): failed: got %#v, want %#v",
-					c.name, c.valStr, got, c.want)
-			}
+			t.Run("SetValue", func(t *testing.T) {
+				err := SetValue(rvv, c.valStr)
+				if err != nil {
+					t.Fatalf("SetValue(%q, %q): failed: %s", c.name, c.valStr, err)
+				}
+				if got := rvv.Interface(); reflect.DeepEqual(got, c.want) {
+					t.Fatalf("SetValue(%q, %q): failed: got %#v, want %#v",
+						c.name, c.valStr, got, c.want)
+				}
+			})
+			t.Run("ParseValue", func(t *testing.T) {
+				rvvParse, err := ParseValue(c.valStr, rvv.Type())
+				if err != nil {
+					t.Fatalf("ParseValue(%q, %q): %s", c.valStr, rvv.Type(), err)
+				}
+				want := rvv.Interface()
+				if got := rvvParse.Interface(); !reflect.DeepEqual(got, want) {
+					t.Fatalf("ParseValue(%q, %q): failed: got %#v, want %#v",
+						c.valStr, rvv.Type(), got, want)
+				}
+			})
 		})
 	}
 }
