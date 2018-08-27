@@ -3,6 +3,9 @@ package gotypes
 import (
 	"reflect"
 	"testing"
+	"time"
+
+	"yunion.io/x/pkg/util/timeutils"
 )
 
 func TestParseValue(t *testing.T) {
@@ -236,5 +239,69 @@ func TestIsNil(t *testing.T) {
 		if got != c.isNil {
 			t.Errorf("want %v, got %v", c.isNil, got)
 		}
+	}
+}
+
+func TestParseSetValuePtr(t *testing.T) {
+	v := &struct {
+		BoolPtr      *bool
+		IntPtr       *int
+		UintPtr      *uint
+		Float32Ptr   *float32
+		Float64Ptr   *float64
+		StringPtr    *string
+		TimeISOPtr   *time.Time
+		TimeMySQLPtr *time.Time
+	}{}
+	// make them addressable
+	rv := reflect.ValueOf(v).Elem()
+
+	mustParseTimeStr := func(s string) time.Time {
+		t, err := timeutils.ParseTimeStr(s)
+		if err != nil {
+			panic("parseTimeStr " + s + ": " + err.Error())
+		}
+		return t
+	}
+	cases := []struct {
+		name   string
+		valStr string
+		want   interface{}
+	}{
+		{"BoolPtr", "true", true},
+		{"BoolPtr", "false", false},
+		{"IntPtr", "-100", -100},
+		{"UintPtr", "100", 100},
+		{"Float32Ptr", "100.1", 100.1},
+		{"Float64Ptr", "-100.1", -100.1},
+		{"StringPtr", "holy", "holy"},
+		{"TimeISOPtr", "2018-08-27T04:20:26Z", mustParseTimeStr("2018-08-27T04:20:26Z")},
+		{"TimeMySQLPtr", "2018-08-27 12:20:26", mustParseTimeStr("2018-08-27 12:20:26")},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			rvv := rv.FieldByName(c.name)
+			t.Run("SetValue", func(t *testing.T) {
+				err := SetValue(rvv, c.valStr)
+				if err != nil {
+					t.Fatalf("SetValue(%q, %q): failed: %s", c.name, c.valStr, err)
+				}
+				if got := rvv.Interface(); reflect.DeepEqual(got, c.want) {
+					t.Fatalf("SetValue(%q, %q): failed: got %#v, want %#v",
+						c.name, c.valStr, got, c.want)
+				}
+			})
+			t.Run("ParseValue", func(t *testing.T) {
+				rvvParse, err := ParseValue(c.valStr, rvv.Type())
+				if err != nil {
+					t.Fatalf("ParseValue(%q, %q): %s", c.valStr, rvv.Type(), err)
+				}
+				want := rvv.Interface()
+				if got := rvvParse.Interface(); !reflect.DeepEqual(got, want) {
+					t.Fatalf("ParseValue(%q, %q): failed: got %#v, want %#v",
+						c.valStr, rvv.Type(), got, want)
+				}
+			})
+		})
 	}
 }
