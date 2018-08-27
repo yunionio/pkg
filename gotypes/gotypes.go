@@ -173,7 +173,16 @@ func SetValue(value reflect.Value, valStr string) error {
 		Float32SliceType, Float64SliceType, StringSliceType:
 		reflect.Append(value, reflect.ValueOf(valStr))
 	default:
-		return fmt.Errorf("Unsupported type: %v", value.Type())
+		if value.Kind() == reflect.Ptr && value.Elem().Kind() != reflect.Slice {
+			newVal := reflect.New(value.Type().Elem())
+			newValElem := newVal.Elem()
+			if err := SetValue(newValElem, valStr); err != nil {
+				return err
+			}
+			value.Set(newVal)
+		} else {
+			return fmt.Errorf("Unsupported type: %v", value.Type())
+		}
 	}
 	return nil
 }
