@@ -35,8 +35,8 @@ func TestParseJointFilterClause(t *testing.T) {
 					funcName: "equals",
 					params:   []string{"10.168.222.232"},
 				},
-				JointModel:  "guestnetworks",
-				ReleatedKey: "guest_id",
+				JointModel: "guestnetworks",
+				RelatedKey: "guest_id",
 			},
 		},
 	}
