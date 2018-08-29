@@ -27,7 +27,7 @@ func TestParseJointFilterClause(t *testing.T) {
 		{
 			name: "test parse guestnetworks",
 			args: args{
-				jointFilter: "guestnetworks(guest_id).ip_addr.equals(10.168.222.232)",
+				jointFilter: "guestnetworks.guest_id(id).ip_addr.equals(10.168.222.232)",
 			},
 			want: &SJointFilterClause{
 				SFilterClause: SFilterClause{
@@ -37,6 +37,23 @@ func TestParseJointFilterClause(t *testing.T) {
 				},
 				JointModel: "guestnetworks",
 				RelatedKey: "guest_id",
+				OriginKey:  "id",
+			},
+		},
+		{
+			name: "test parse guestnetworks",
+			args: args{
+				jointFilter: "networks.id(network_id).name.contains(wp)",
+			},
+			want: &SJointFilterClause{
+				SFilterClause: SFilterClause{
+					field:    "name",
+					funcName: "contains",
+					params:   []string{"wp"},
+				},
+				JointModel: "networks",
+				RelatedKey: "id",
+				OriginKey:  "network_id",
 			},
 		},
 	}
