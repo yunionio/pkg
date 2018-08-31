@@ -648,15 +648,15 @@ func TestTransSQLAchemyURL(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:    "should error",
+			name:    "bare",
 			args:    args{"root:root@127.0.0.1:3306/mclouds?charset=utf8"},
-			wantRet: "",
-			wantErr: true,
+			wantRet: "root:root@127.0.0.1:3306/mclouds?charset=utf8",
+			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotRet, err := TransSQLAchemyURL(tt.args.pySQLSrc)
+			_, gotRet, err := TransSQLAchemyURL(tt.args.pySQLSrc)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("TransSQLAchemyURL() error = %v, wantErr %v", err, tt.wantErr)
 				return
