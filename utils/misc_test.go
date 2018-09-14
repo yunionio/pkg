@@ -706,3 +706,41 @@ func TestComposeURL(t *testing.T) {
 		})
 	}
 }
+
+func TestGetSizeGB(t *testing.T) {
+	type args struct {
+		sizeStr     string
+		defaultSize string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    int64
+		wantErr bool
+	}{
+		{
+			name:    "get size 1024, unit M",
+			args:    args{"1024", "M"},
+			want:    1,
+			wantErr: false,
+		},
+		{
+			name:    "get size 10240M",
+			args:    args{"10240M", "M"},
+			want:    10,
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := GetSizeGB(tt.args.sizeStr, tt.args.defaultSize)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("GetSizeGB() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("GetSizeGB() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
