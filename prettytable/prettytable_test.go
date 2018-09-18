@@ -10,6 +10,7 @@ func TestGetString(t *testing.T) {
 		in    [][]string
 		out   string
 	}{
+		{[]string{"A", "B"}, [][]string{}, ""},
 		{[]string{"A", "B"},
 			[][]string{
 				{"a", "b"},
@@ -31,7 +32,21 @@ func TestGetString(t *testing.T) {
 +---+---+
 `,
 		},
-		{[]string{"A", "B"}, [][]string{}, ""},
+		{[]string{"A", "B"},
+			[][]string{
+				{"a", "a\t\t"},
+				{"b", "\tb\t"},
+				{"c", "\t\tc"},
+			},
+			`+---+-------------+
+| A |      B      |
++---+-------------+
+| a | a		  |
+| b | 	b	  |
+| c | 		c |
++---+-------------+
+`,
+		},
 	}
 	for _, c := range cases {
 		pt := NewPrettyTable(c.title)
