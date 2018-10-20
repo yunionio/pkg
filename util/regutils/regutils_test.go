@@ -47,6 +47,10 @@ func TestRegexp(t *testing.T) {
 		{"0,89", "MatchUSCurrency", MatchUSCurrency, false},
 		{"3.490.000,", "MatchUSCurrency", MatchUSCurrency, false},
 		{"3.490.000.", "MatchEUCurrency", MatchEUCurrency, false},
+		{",200.90", "MatchUSCurrency", MatchUSCurrency, false},
+		{"1,200.90", "MatchUSCurrency", MatchUSCurrency, true},
+		{".200,90", "MatchEUCurrency", MatchEUCurrency, false},
+		{"1.200,90", "MatchEUCurrency", MatchEUCurrency, true},
 
 		{"10.168.222.23", "MatchIPAddr", MatchIPAddr, true},
 		{"10.168.222.", "MatchIPAddr", MatchIPAddr, false},
