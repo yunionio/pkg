@@ -62,7 +62,6 @@ func TestExpandInterface(t *testing.T) {
 	}
 }
 
-
 func TestSetStructFieldValue(t *testing.T) {
 	type TestStruct struct {
 		Name string
@@ -78,4 +77,3 @@ func TestSetStructFieldValue(t *testing.T) {
 		t.Errorf("Fail to find struct field")
 	}
 }
-
