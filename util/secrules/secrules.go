@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"yunion.io/x/pkg/util/regutils"
+	"yunion.io/x/pkg/utils"
 )
 
 type TSecurityRuleDirection string
@@ -54,6 +55,7 @@ const PROTO_UDP = "udp"
 const PROTO_ICMP = "icmp"
 
 var (
+	ErrInvalidPriority  = errors.New("invalid priority")
 	ErrInvalidDirection = errors.New("invalid direction")
 	ErrInvalidAction    = errors.New("invalid action")
 	ErrInvalidNet       = errors.New("invalid net")
@@ -203,6 +205,37 @@ func (rule *SecurityRule) IsWildMatch() bool {
 		len(rule.Ports) == 0 &&
 		rule.PortStart == 0 &&
 		rule.PortEnd == 0
+}
+
+func (rule *SecurityRule) ValidateRule() error {
+	if !utils.IsInStringArray(string(rule.Direction), []string{string(DIR_IN), string(DIR_OUT)}) {
+		return ErrInvalidDirection
+	}
+	if !utils.IsInStringArray(string(rule.Action), []string{string(SecurityRuleAllow), string(SecurityRuleDeny)}) {
+		return ErrInvalidAction
+	}
+	if !utils.IsInStringArray(rule.Protocol, []string{PROTO_ANY, PROTO_ICMP, PROTO_TCP, PROTO_UDP}) {
+		return ErrInvalidProtocol
+	}
+	if len(rule.Ports) > 0 {
+		for i := 0; i < len(rule.Ports); i++ {
+			if rule.Ports[i] < 1 || rule.Ports[i] > 65535 {
+				return ErrInvalidPort
+			}
+		}
+	}
+	if rule.PortStart > 0 || rule.PortEnd > 0 {
+		if rule.PortStart > rule.PortEnd {
+			return ErrInvalidPortRange
+		}
+		if rule.PortStart > 65535 || rule.PortEnd > 65535 {
+			return ErrInvalidPortRange
+		}
+	}
+	if rule.Priority < 1 || rule.Priority > 100 {
+		return ErrInvalidPriority
+	}
+	return nil
 }
 
 func (rule *SecurityRule) String() (result string) {
