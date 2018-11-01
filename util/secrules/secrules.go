@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"yunion.io/x/log"
 	"yunion.io/x/pkg/util/regutils"
 	"yunion.io/x/pkg/utils"
 )
@@ -238,6 +239,28 @@ func (rule *SecurityRule) ValidateRule() error {
 	return nil
 }
 
+func (rule *SecurityRule) getPort() string {
+	if rule.PortStart > 0 && rule.PortEnd > 0 {
+		if rule.PortStart < rule.PortEnd {
+			return fmt.Sprintf("%d-%d", rule.PortStart, rule.PortEnd)
+		}
+		if rule.PortStart == rule.PortEnd {
+			return fmt.Sprintf("%d", rule.PortStart)
+		}
+		// panic on this badness
+		log.Errorf("invalid port range %d-%d", rule.PortStart, rule.PortEnd)
+		return ""
+	}
+	if len(rule.Ports) > 0 {
+		ps := []string{}
+		for _, p := range rule.Ports {
+			ps = append(ps, fmt.Sprintf("%d", p))
+		}
+		return strings.Join(ps, ",")
+	}
+	return ""
+}
+
 func (rule *SecurityRule) String() (result string) {
 	s := []string{}
 	s = append(s, string(rule.Direction)+":"+string(rule.Action))
@@ -249,23 +272,27 @@ func (rule *SecurityRule) String() (result string) {
 			s = append(s, rule.IPNet.IP.String())
 		}
 	}
-	s = append(s, rule.Protocol)
-	if rule.Protocol == PROTO_TCP || rule.Protocol == PROTO_UDP {
-		if rule.PortStart > 0 && rule.PortEnd > 0 {
-			if rule.PortStart < rule.PortEnd {
-				s = append(s, fmt.Sprintf("%d-%d", rule.PortStart, rule.PortEnd))
-			} else if rule.PortStart == rule.PortEnd {
-				s = append(s, fmt.Sprintf("%d", rule.PortStart))
-			} else {
-				// panic on this badness
-			}
-		} else if len(rule.Ports) > 0 {
-			ps := []string{}
-			for _, p := range rule.Ports {
-				ps = append(ps, fmt.Sprintf("%d", p))
-			}
-			s = append(s, strings.Join(ps, ","))
+
+	port := rule.getPort()
+	if rule.Protocol == PROTO_ICMP || rule.Protocol == PROTO_TCP || rule.Protocol == PROTO_UDP {
+		s = append(s, rule.Protocol)
+		if rule.Protocol != PROTO_ICMP && len(port) > 0 {
+			s = append(s, port)
 		}
+		return strings.Join(s, " ")
+	} else if rule.Protocol == PROTO_ANY {
+		if len(port) == 0 {
+			s = append(s, rule.Protocol)
+			return strings.Join(s, " ")
+		}
+
+		icmp := strings.Join(append(s, PROTO_ICMP), " ")
+		tcp := strings.Join(append(s, []string{PROTO_TCP, port}...), " ")
+		udp := strings.Join(append(s, []string{PROTO_UDP, port}...), " ")
+
+		return strings.Join([]string{icmp, tcp, udp}, ";")
+	} else {
+		log.Errorf("invalid protocol: %s", rule.Protocol)
+		return ""
 	}
-	return strings.Join(s, " ")
 }
