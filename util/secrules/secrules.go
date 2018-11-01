@@ -7,7 +7,9 @@ import (
 	"strconv"
 	"strings"
 
+	"yunion.io/x/log"
 	"yunion.io/x/pkg/util/regutils"
+	"yunion.io/x/pkg/utils"
 )
 
 type TSecurityRuleDirection string
@@ -54,6 +56,8 @@ const PROTO_UDP = "udp"
 const PROTO_ICMP = "icmp"
 
 var (
+	ErrInvalidICMP      = errors.New("invalid icmp with port")
+	ErrInvalidPriority  = errors.New("invalid priority")
 	ErrInvalidDirection = errors.New("invalid direction")
 	ErrInvalidAction    = errors.New("invalid action")
 	ErrInvalidNet       = errors.New("invalid net")
@@ -93,7 +97,7 @@ func parsePortString(ps string) (int, error) {
 func ParseSecurityRule(pattern string) (*SecurityRule, error) {
 	rule := &SecurityRule{}
 	for _, direction := range []TSecurityRuleDirection{SecurityRuleIngress, SecurityRuleEgress} {
-		if pattern[:len(direction)+1] == string(direction)+":" {
+		if len(pattern) > len(direction)+1 && pattern[:len(direction)+1] == string(direction)+":" {
 			rule.Direction, pattern = direction, strings.Replace(pattern, string(direction)+":", "", -1)
 			break
 		}
@@ -205,6 +209,70 @@ func (rule *SecurityRule) IsWildMatch() bool {
 		rule.PortEnd == 0
 }
 
+func (rule *SecurityRule) ValidateRule() error {
+	if !utils.IsInStringArray(string(rule.Direction), []string{string(DIR_IN), string(DIR_OUT)}) {
+		return ErrInvalidDirection
+	}
+	if !utils.IsInStringArray(string(rule.Action), []string{string(SecurityRuleAllow), string(SecurityRuleDeny)}) {
+		return ErrInvalidAction
+	}
+	if !utils.IsInStringArray(rule.Protocol, []string{PROTO_ANY, PROTO_ICMP, PROTO_TCP, PROTO_UDP}) {
+		return ErrInvalidProtocol
+	}
+
+	if rule.Protocol == PROTO_ICMP {
+		if len(rule.Ports) > 0 || rule.PortStart > 0 || rule.PortEnd > 0 {
+			return ErrInvalidICMP
+		}
+	}
+
+	if len(rule.Ports) > 0 {
+		for i := 0; i < len(rule.Ports); i++ {
+			if rule.Ports[i] < 1 || rule.Ports[i] > 65535 {
+				return ErrInvalidPort
+			}
+		}
+	}
+	if rule.PortStart > 0 || rule.PortEnd > 0 {
+		if rule.PortStart < 1 {
+			return ErrInvalidPortRange
+		}
+
+		if rule.PortStart > rule.PortEnd {
+			return ErrInvalidPortRange
+		}
+		if rule.PortStart > 65535 || rule.PortEnd > 65535 {
+			return ErrInvalidPortRange
+		}
+	}
+	if rule.Priority < 1 || rule.Priority > 100 {
+		return ErrInvalidPriority
+	}
+	return nil
+}
+
+func (rule *SecurityRule) getPort() string {
+	if rule.PortStart > 0 && rule.PortEnd > 0 {
+		if rule.PortStart < rule.PortEnd {
+			return fmt.Sprintf("%d-%d", rule.PortStart, rule.PortEnd)
+		}
+		if rule.PortStart == rule.PortEnd {
+			return fmt.Sprintf("%d", rule.PortStart)
+		}
+		// panic on this badness
+		log.Errorf("invalid port range %d-%d", rule.PortStart, rule.PortEnd)
+		return ""
+	}
+	if len(rule.Ports) > 0 {
+		ps := []string{}
+		for _, p := range rule.Ports {
+			ps = append(ps, fmt.Sprintf("%d", p))
+		}
+		return strings.Join(ps, ",")
+	}
+	return ""
+}
+
 func (rule *SecurityRule) String() (result string) {
 	s := []string{}
 	s = append(s, string(rule.Direction)+":"+string(rule.Action))
@@ -216,22 +284,12 @@ func (rule *SecurityRule) String() (result string) {
 			s = append(s, rule.IPNet.IP.String())
 		}
 	}
+
 	s = append(s, rule.Protocol)
 	if rule.Protocol == PROTO_TCP || rule.Protocol == PROTO_UDP {
-		if rule.PortStart > 0 && rule.PortEnd > 0 {
-			if rule.PortStart < rule.PortEnd {
-				s = append(s, fmt.Sprintf("%d-%d", rule.PortStart, rule.PortEnd))
-			} else if rule.PortStart == rule.PortEnd {
-				s = append(s, fmt.Sprintf("%d", rule.PortStart))
-			} else {
-				// panic on this badness
-			}
-		} else if len(rule.Ports) > 0 {
-			ps := []string{}
-			for _, p := range rule.Ports {
-				ps = append(ps, fmt.Sprintf("%d", p))
-			}
-			s = append(s, strings.Join(ps, ","))
+		port := rule.getPort()
+		if len(port) > 0 {
+			s = append(s, port)
 		}
 	}
 	return strings.Join(s, " ")
