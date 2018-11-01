@@ -190,7 +190,7 @@ func TestValidateRuleFunction(t *testing.T) {
 				PortStart: 10,
 				PortEnd:   11,
 			},
-			bad: false,
+			bad: true,
 		},
 		{
 			rule: SecurityRule{
@@ -201,7 +201,7 @@ func TestValidateRuleFunction(t *testing.T) {
 				PortStart: 10,
 				PortEnd:   10,
 			},
-			bad: false,
+			bad: true,
 		},
 		{
 			rule: SecurityRule{
@@ -232,7 +232,7 @@ func TestValidateRuleFunction(t *testing.T) {
 				Priority:  100,
 				Ports:     []int{1, 2, 3},
 			},
-			bad: false,
+			bad: true,
 		},
 		{
 			rule: SecurityRule{
