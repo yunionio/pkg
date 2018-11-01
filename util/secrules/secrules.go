@@ -56,15 +56,16 @@ const PROTO_UDP = "udp"
 const PROTO_ICMP = "icmp"
 
 var (
-	ErrInvalidICMP      = errors.New("invalid icmp with port")
-	ErrInvalidPriority  = errors.New("invalid priority")
-	ErrInvalidDirection = errors.New("invalid direction")
-	ErrInvalidAction    = errors.New("invalid action")
-	ErrInvalidNet       = errors.New("invalid net")
-	ErrInvalidIPAddr    = errors.New("invalid ip address")
-	ErrInvalidProtocol  = errors.New("invalid protocol")
-	ErrInvalidPortRange = errors.New("invalid port range")
-	ErrInvalidPort      = errors.New("invalid port")
+	ErrInvalidProtocolAny  = errors.New("invalid protocol any with port option")
+	ErrInvalidProtocolICMP = errors.New("invalid protocol icmp with port option")
+	ErrInvalidPriority     = errors.New("invalid priority")
+	ErrInvalidDirection    = errors.New("invalid direction")
+	ErrInvalidAction       = errors.New("invalid action")
+	ErrInvalidNet          = errors.New("invalid net")
+	ErrInvalidIPAddr       = errors.New("invalid ip address")
+	ErrInvalidProtocol     = errors.New("invalid protocol")
+	ErrInvalidPortRange    = errors.New("invalid port range")
+	ErrInvalidPort         = errors.New("invalid port")
 )
 
 type SecurityRuleSet []SecurityRule
@@ -222,7 +223,13 @@ func (rule *SecurityRule) ValidateRule() error {
 
 	if rule.Protocol == PROTO_ICMP {
 		if len(rule.Ports) > 0 || rule.PortStart > 0 || rule.PortEnd > 0 {
-			return ErrInvalidICMP
+			return ErrInvalidProtocolICMP
+		}
+	}
+
+	if rule.Protocol == PROTO_ANY {
+		if len(rule.Ports) > 0 || rule.PortStart > 0 || rule.PortEnd > 0 {
+			return ErrInvalidProtocolAny
 		}
 	}
 
