@@ -62,3 +62,219 @@ func TestIsFunction(t *testing.T) {
 	}
 
 }
+
+func TestValidateRuleFunction(t *testing.T) {
+	cases := []struct {
+		rule SecurityRule
+		bad  bool
+	}{
+		{
+			rule: SecurityRule{},
+			bad:  true,
+		},
+		{
+			rule: SecurityRule{
+				Direction: "hello",
+			},
+			bad: true,
+		},
+		{
+			rule: SecurityRule{
+				Direction: "in",
+			},
+			bad: true,
+		},
+		{
+			rule: SecurityRule{
+				Direction: "in",
+				Action:    "world",
+			},
+			bad: true,
+		},
+		{
+			rule: SecurityRule{
+				Direction: "in",
+				Action:    "allow",
+			},
+			bad: true,
+		},
+		{
+			rule: SecurityRule{
+				Direction: "in",
+				Action:    "allow",
+				Protocol:  "test",
+			},
+			bad: true,
+		},
+		{
+			rule: SecurityRule{
+				Direction: "in",
+				Action:    "allow",
+				Protocol:  "any",
+			},
+			bad: true,
+		},
+		{
+			rule: SecurityRule{
+				Direction: "in",
+				Action:    "allow",
+				Protocol:  "any",
+				Priority:  -1,
+			},
+			bad: true,
+		},
+		{
+			rule: SecurityRule{
+				Direction: "in",
+				Action:    "allow",
+				Protocol:  "any",
+				Priority:  0,
+			},
+			bad: true,
+		},
+		{
+			rule: SecurityRule{
+				Direction: "in",
+				Action:    "allow",
+				Protocol:  "any",
+				Priority:  1,
+			},
+			bad: false,
+		},
+		{
+			rule: SecurityRule{
+				Direction: "in",
+				Action:    "allow",
+				Protocol:  "any",
+				Priority:  100,
+			},
+			bad: false,
+		},
+		{
+			rule: SecurityRule{
+				Direction: "in",
+				Action:    "allow",
+				Protocol:  "any",
+				Priority:  101,
+			},
+			bad: true,
+		},
+		{
+			rule: SecurityRule{
+				Direction: "in",
+				Action:    "allow",
+				Protocol:  "any",
+				Priority:  100,
+				PortStart: -1,
+				PortEnd:   -1,
+			},
+			bad: false,
+		},
+		{
+			rule: SecurityRule{
+				Direction: "in",
+				Action:    "allow",
+				Protocol:  "any",
+				Priority:  100,
+				PortStart: 10,
+				PortEnd:   7,
+			},
+			bad: true,
+		},
+		{
+			rule: SecurityRule{
+				Direction: "in",
+				Action:    "allow",
+				Protocol:  "any",
+				Priority:  100,
+				PortStart: 10,
+				PortEnd:   11,
+			},
+			bad: false,
+		},
+		{
+			rule: SecurityRule{
+				Direction: "in",
+				Action:    "allow",
+				Protocol:  "any",
+				Priority:  100,
+				PortStart: 10,
+				PortEnd:   10,
+			},
+			bad: false,
+		},
+		{
+			rule: SecurityRule{
+				Direction: "in",
+				Action:    "allow",
+				Protocol:  "any",
+				Priority:  100,
+				PortStart: 10,
+				PortEnd:   1000000,
+			},
+			bad: true,
+		},
+		{
+			rule: SecurityRule{
+				Direction: "in",
+				Action:    "allow",
+				Protocol:  "any",
+				Priority:  100,
+				Ports:     []int{},
+			},
+			bad: false,
+		},
+		{
+			rule: SecurityRule{
+				Direction: "in",
+				Action:    "allow",
+				Protocol:  "any",
+				Priority:  100,
+				Ports:     []int{1, 2, 3},
+			},
+			bad: false,
+		},
+		{
+			rule: SecurityRule{
+				Direction: "in",
+				Action:    "allow",
+				Protocol:  "any",
+				Priority:  100,
+				Ports:     []int{1, 2, 3, 0},
+			},
+			bad: true,
+		},
+		{
+			rule: SecurityRule{
+				Direction: "in",
+				Action:    "allow",
+				Protocol:  "any",
+				Priority:  100,
+				Ports:     []int{1, 2, 3, 23232323},
+			},
+			bad: true,
+		},
+		{
+			rule: SecurityRule{
+				Direction: "in",
+				Action:    "allow",
+				Protocol:  "icmp",
+				Priority:  100,
+				Ports:     []int{1, 2, 3, 23232323},
+			},
+			bad: true,
+		},
+	}
+
+	for _, c := range cases {
+		err := c.rule.ValidateRule()
+		if err != nil {
+			if !c.bad {
+				t.Errorf("rule: %v validate error: %v", c.rule, err)
+			}
+		} else if c.bad {
+			t.Errorf("rule: %v bad but validate pass", c.rule)
+		}
+	}
+
+}

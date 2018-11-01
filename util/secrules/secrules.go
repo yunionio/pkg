@@ -56,6 +56,7 @@ const PROTO_UDP = "udp"
 const PROTO_ICMP = "icmp"
 
 var (
+	ErrInvalidICMP      = errors.New("invalid icmp with port")
 	ErrInvalidPriority  = errors.New("invalid priority")
 	ErrInvalidDirection = errors.New("invalid direction")
 	ErrInvalidAction    = errors.New("invalid action")
@@ -96,7 +97,7 @@ func parsePortString(ps string) (int, error) {
 func ParseSecurityRule(pattern string) (*SecurityRule, error) {
 	rule := &SecurityRule{}
 	for _, direction := range []TSecurityRuleDirection{SecurityRuleIngress, SecurityRuleEgress} {
-		if pattern[:len(direction)+1] == string(direction)+":" {
+		if len(pattern) > len(direction)+1 && pattern[:len(direction)+1] == string(direction)+":" {
 			rule.Direction, pattern = direction, strings.Replace(pattern, string(direction)+":", "", -1)
 			break
 		}
@@ -218,6 +219,13 @@ func (rule *SecurityRule) ValidateRule() error {
 	if !utils.IsInStringArray(rule.Protocol, []string{PROTO_ANY, PROTO_ICMP, PROTO_TCP, PROTO_UDP}) {
 		return ErrInvalidProtocol
 	}
+
+	if rule.Protocol == PROTO_ICMP {
+		if len(rule.Ports) > 0 || rule.PortStart > 0 || rule.PortEnd > 0 {
+			return ErrInvalidICMP
+		}
+	}
+
 	if len(rule.Ports) > 0 {
 		for i := 0; i < len(rule.Ports); i++ {
 			if rule.Ports[i] < 1 || rule.Ports[i] > 65535 {
@@ -226,6 +234,10 @@ func (rule *SecurityRule) ValidateRule() error {
 		}
 	}
 	if rule.PortStart > 0 || rule.PortEnd > 0 {
+		if rule.PortStart < 1 {
+			return ErrInvalidPortRange
+		}
+
 		if rule.PortStart > rule.PortEnd {
 			return ErrInvalidPortRange
 		}
@@ -273,26 +285,12 @@ func (rule *SecurityRule) String() (result string) {
 		}
 	}
 
-	port := rule.getPort()
-	if rule.Protocol == PROTO_ICMP || rule.Protocol == PROTO_TCP || rule.Protocol == PROTO_UDP {
-		s = append(s, rule.Protocol)
-		if rule.Protocol != PROTO_ICMP && len(port) > 0 {
+	s = append(s, rule.Protocol)
+	if rule.Protocol == PROTO_TCP || rule.Protocol == PROTO_UDP {
+		port := rule.getPort()
+		if len(port) > 0 {
 			s = append(s, port)
 		}
-		return strings.Join(s, " ")
-	} else if rule.Protocol == PROTO_ANY {
-		if len(port) == 0 {
-			s = append(s, rule.Protocol)
-			return strings.Join(s, " ")
-		}
-
-		icmp := strings.Join(append(s, PROTO_ICMP), " ")
-		tcp := strings.Join(append(s, []string{PROTO_TCP, port}...), " ")
-		udp := strings.Join(append(s, []string{PROTO_UDP, port}...), " ")
-
-		return strings.Join([]string{icmp, tcp, udp}, ";")
-	} else {
-		log.Errorf("invalid protocol: %s", rule.Protocol)
-		return ""
 	}
+	return strings.Join(s, " ")
 }
