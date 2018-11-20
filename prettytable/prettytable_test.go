@@ -47,12 +47,27 @@ func TestGetString(t *testing.T) {
 +---+-------------+
 `,
 		},
+		{[]string{"A", "B", "C"},
+			[][]string{
+				{"a", "云联 华北2（北京）\t\t", "ok"},
+				{"b", "\t云联 印度尼西亚（雅加达）", "ok"},
+				{"c", "云联 香港", "ok"},
+			},
+			`+---+------------------------------------+----+
+| A |                 B                  | C  |
++---+------------------------------------+----+
+| a | 云联 华北2（北京）		 | ok |
+| b | 	云联 印度尼西亚（雅加达）        | ok |
+| c | 云联 香港                          | ok |
++---+------------------------------------+----+
+`,
+		},
 	}
 	for _, c := range cases {
 		pt := NewPrettyTable(c.title)
 		out := pt.GetString(c.in)
 		if out != c.out {
-			t.Errorf("\n%s\n(%d)\n !=\n%s\n(%d)\n", out, len(out), c.out, len(c.out))
+			t.Errorf("got != want\n%s\n(%d)\n !=\n%s\n(%d)\n", out, len(out), c.out, len(c.out))
 		}
 	}
 }
