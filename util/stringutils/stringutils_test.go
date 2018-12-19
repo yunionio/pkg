@@ -1,6 +1,8 @@
 package stringutils
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestStringUtils(t *testing.T) {
 	t.Logf("%s", UUID4())
@@ -58,5 +60,42 @@ func TestParseNamePattern(t *testing.T) {
 		if patternLen != c.patternLen {
 			t.Errorf("patternLen: want %d, got %d", c.patternLen, patternLen)
 		}
+	}
+}
+
+func TestSplitKeyValueBySep(t *testing.T) {
+	type args struct {
+		line string
+		sep  string
+	}
+	tests := []struct {
+		name  string
+		args  args
+		want  string
+		want1 string
+	}{
+		{
+			name:  "emptyInput",
+			args:  args{line: "", sep: ":"},
+			want:  "",
+			want1: "",
+		},
+		{
+			name:  "normalInput",
+			args:  args{line: "key 1: value 2", sep: ":"},
+			want:  "key 1",
+			want1: "value 2",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, got1 := SplitKeyValueBySep(tt.args.line, tt.args.sep)
+			if got != tt.want {
+				t.Errorf("SplitKeyValueBySep() got = %v, want %v", got, tt.want)
+			}
+			if got1 != tt.want1 {
+				t.Errorf("SplitKeyValueBySep() got1 = %v, want %v", got1, tt.want1)
+			}
+		})
 	}
 }
