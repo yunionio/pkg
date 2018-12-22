@@ -198,9 +198,9 @@ func getAnonymouStructPointer(structValue reflect.Value, targetType reflect.Type
 }
 
 func FindAnonymouStructPointer(data interface{}, targetPtr interface{}) error {
-	targetValue := reflect.Indirect(reflect.ValueOf(targetPtr))
+	targetValue := reflect.ValueOf(targetPtr).Elem()
 	if targetValue.Kind() != reflect.Ptr {
-		return fmt.Errorf("target must be a pointer")
+		return fmt.Errorf("target must be a pointer to pointer")
 	}
 	targetType := targetValue.Type().Elem()
 	structValue := reflect.Indirect(reflect.ValueOf(data))
