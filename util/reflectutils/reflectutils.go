@@ -181,16 +181,14 @@ func getAnonymouStructPointer(structValue reflect.Value, targetType reflect.Type
 	structType := structValue.Type()
 	for i := 0; i < structValue.NumField(); i += 1 {
 		fieldType := structType.Field(i)
-		if fieldType.Anonymous {
-			if fieldType.Type == targetType {
-				val := structValue.Field(i) // val is not a pointer
-				return val.Addr().Interface()
-			}
-			if fieldType.Type.Kind() == reflect.Struct {
-				ptr := getAnonymouStructPointer(structValue.Field(i), targetType)
-				if ptr != nil {
-					return ptr
-				}
+		if fieldType.Type == targetType {
+			val := structValue.Field(i) // val is not a pointer
+			return val.Addr().Interface()
+		}
+		if fieldType.Anonymous && fieldType.Type.Kind() == reflect.Struct {
+			ptr := getAnonymouStructPointer(structValue.Field(i), targetType)
+			if ptr != nil {
+				return ptr
 			}
 		}
 	}
