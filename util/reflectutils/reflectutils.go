@@ -1,6 +1,7 @@
 package reflectutils
 
 import (
+	"fmt"
 	"reflect"
 	"strings"
 
@@ -173,4 +174,40 @@ func ExpandInterface(val interface{}) []interface{} {
 	} else {
 		return []interface{}{val}
 	}
+}
+
+// tagetType must not be a pointer
+func getAnonymouStructPointer(structValue reflect.Value, targetType reflect.Type) interface{} {
+	structType := structValue.Type()
+	for i := 0; i < structValue.NumField(); i += 1 {
+		fieldType := structType.Field(i)
+		if fieldType.Anonymous {
+			if fieldType.Type == targetType {
+				val := structValue.Field(i) // val is not a pointer
+				return val.Addr().Interface()
+			}
+			if fieldType.Type.Kind() == reflect.Struct {
+				ptr := getAnonymouStructPointer(structValue.Field(i), targetType)
+				if ptr != nil {
+					return ptr
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func FindAnonymouStructPointer(data interface{}, targetPtr interface{}) error {
+	targetValue := reflect.Indirect(reflect.ValueOf(targetPtr))
+	if targetValue.Kind() != reflect.Ptr {
+		return fmt.Errorf("target must be a pointer")
+	}
+	targetType := targetValue.Type().Elem()
+	structValue := reflect.Indirect(reflect.ValueOf(data))
+	ptr := getAnonymouStructPointer(structValue, targetType)
+	if ptr == nil {
+		return fmt.Errorf("no anonymous struct found")
+	}
+	targetValue.Set(reflect.ValueOf(ptr))
+	return nil
 }
