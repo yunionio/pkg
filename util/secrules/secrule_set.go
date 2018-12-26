@@ -2,19 +2,19 @@ package secrules
 
 type SecurityRuleSet []SecurityRule
 
-func (v SecurityRuleSet) Len() int {
-	return len(v)
+func (srs SecurityRuleSet) Len() int {
+	return len(srs)
 }
 
-func (v SecurityRuleSet) Swap(i, j int) {
-	v[i], v[j] = v[j], v[i]
+func (srs SecurityRuleSet) Swap(i, j int) {
+	srs[i], srs[j] = srs[j], srs[i]
 }
 
-func (v SecurityRuleSet) Less(i, j int) bool {
-	if v[i].Priority > v[j].Priority {
+func (srs SecurityRuleSet) Less(i, j int) bool {
+	if srs[i].Priority > srs[j].Priority {
 		return true
-	} else if v[i].Priority == v[j].Priority {
-		return v[i].String() < v[j].String()
+	} else if srs[i].Priority == srs[j].Priority {
+		return srs[i].String() < srs[j].String()
 	}
 	return false
 }
