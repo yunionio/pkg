@@ -55,6 +55,13 @@ const PROTO_TCP = "tcp"
 const PROTO_UDP = "udp"
 const PROTO_ICMP = "icmp"
 
+// non-wild protocols
+var protocolsSupported = []string{
+	PROTO_TCP,
+	PROTO_UDP,
+	PROTO_ICMP,
+}
+
 var (
 	ErrInvalidProtocolAny  = errors.New("invalid protocol any with port option")
 	ErrInvalidProtocolICMP = errors.New("invalid protocol icmp with port option")
@@ -74,6 +81,15 @@ func parsePortString(ps string) (int, error) {
 		return 0, ErrInvalidPort
 	}
 	return int(p), nil
+}
+
+func MustParseSecurityRule(s string) *SecurityRule {
+	r, err := ParseSecurityRule(s)
+	if err != nil {
+		msg := fmt.Sprintf("parse security rule %q: %s", s, err)
+		panic(msg)
+	}
+	return r
 }
 
 func ParseSecurityRule(pattern string) (*SecurityRule, error) {
@@ -272,4 +288,35 @@ func (rule *SecurityRule) String() (result string) {
 		}
 	}
 	return strings.Join(s, " ")
+}
+
+func (rule *SecurityRule) equals(r *SecurityRule) bool {
+	// essence of String, bom
+	s0 := rule.String()
+	s1 := r.String()
+	return s0 == s1
+}
+
+func (rule *SecurityRule) netEquals(r *SecurityRule) bool {
+	net0 := rule.IPNet.String()
+	net1 := r.IPNet.String()
+	return net0 == net1
+}
+
+func (rule *SecurityRule) cutOut(r *SecurityRule) SecurityRuleSet {
+	srcs := securityRuleCuts{securityRuleCut{r: *rule}}
+	//a := srcs
+	srcs = srcs.cutOutProtocol(r.Protocol)
+	srcs = srcs.cutOutIPNet(r.IPNet)
+	if len(r.Ports) > 0 {
+		srcs = srcs.cutOutPorts([]uint16(newPortsFromInts(r.Ports...)))
+	} else if r.PortStart > 0 && r.PortEnd > 0 {
+		srcs = srcs.cutOutPortRange(uint16(r.PortStart), uint16(r.PortEnd))
+	} else {
+		srcs = srcs.cutOutPortsAll()
+	}
+	//fmt.Printf("a %s\n", a)
+	//fmt.Printf("b %s\n", srcs)
+	srs := srcs.securityRuleSet()
+	return srs
 }

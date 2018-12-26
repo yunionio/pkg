@@ -233,51 +233,59 @@ func (ar IPV4AddrRange) ToMaskMatches() [][2]uint32 {
 	return r
 }
 
-// AddressCount() of every member of `left` must not be zero, while that of subs can
-func (ar IPV4AddrRange) Substract(ar2 IPV4AddrRange) (left []IPV4AddrRange, subs IPV4AddrRange) {
-	left = []IPV4AddrRange{}
+func (ar IPV4AddrRange) Substract(ar2 IPV4AddrRange) (lefts []IPV4AddrRange, sub *IPV4AddrRange) {
+	lefts = []IPV4AddrRange{}
 	// no intersection, no substract
 	if ar.end < ar2.start || ar.start > ar2.end {
-		left = append(left, ar)
+		lefts = append(lefts, ar)
 		return
 	}
 
 	// ar contains ar2
 	if ar.ContainsRange(ar2) {
-		left = []IPV4AddrRange{
-			NewIPV4AddrRange(ar.start, ar2.start-1),
-			NewIPV4AddrRange(ar2.end+1, ar.end),
+		nns := [][2]int64{
+			[2]int64{int64(ar.start), int64(ar2.start) - 1},
+			[2]int64{int64(ar2.end) + 1, int64(ar.end)},
 		}
-		for i := len(left) - 1; i >= 0; i-- {
-			if left[i].AddressCount() == 0 {
-				left = append(left[:i], left[i+1:]...)
+		for _, nn := range nns {
+			if nn[0] <= nn[1] {
+				lefts = append(lefts, NewIPV4AddrRange(IPV4Addr(nn[0]), IPV4Addr(nn[1])))
 			}
 		}
-		return left, ar2
+		ar2_ := ar2
+		sub = &ar2_
+		return
 	}
 
 	// ar contained by ar2
 	if ar2.ContainsRange(ar) {
-		subs = ar2
+		ar_ := ar
+		sub = &ar_
 		return
 	}
 
 	// intersect, ar on the left
-	if ar.end >= ar2.start {
-		left = append(left, NewIPV4AddrRange(ar.start, ar2.start-1))
-		subs = NewIPV4AddrRange(ar2.start, ar.end)
+	if ar.start < ar2.start && ar.end >= ar2.start {
+		lefts = append(lefts, NewIPV4AddrRange(ar.start, ar2.start-1))
+		sub_ := NewIPV4AddrRange(ar2.start, ar.end)
+		sub = &sub_
 		return
 	}
 
 	// intersect, ar on the right
-	if ar.start <= ar2.end {
-		left = append(left, NewIPV4AddrRange(ar2.end+1, ar.end))
-		subs = NewIPV4AddrRange(ar.start, ar2.end)
+	if ar.start <= ar2.end && ar.end > ar2.end {
+		lefts = append(lefts, NewIPV4AddrRange(ar2.end+1, ar.end))
+		sub_ := NewIPV4AddrRange(ar.start, ar2.end)
+		sub = &sub_
 		return
 	}
 
 	// no intersection
 	return
+}
+
+func (ar IPV4AddrRange) equals(ar2 IPV4AddrRange) bool {
+	return ar.start == ar2.start && ar.end == ar2.end
 }
 
 func Masklen2Mask(maskLen int8) IPV4Addr {
