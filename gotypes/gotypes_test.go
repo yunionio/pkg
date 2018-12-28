@@ -299,8 +299,6 @@ func TestParseSetValuePtr(t *testing.T) {
 		StringPtr    *string
 		TimeISOPtr   *time.Time
 		TimeMySQLPtr *time.Time
-		StringArray  []string
-		IntArray     []int
 	}{}
 	// make them addressable
 	rv := reflect.ValueOf(v).Elem()
