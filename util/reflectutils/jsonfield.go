@@ -139,6 +139,9 @@ func (set SStructFieldValueSet) GetStructFieldIndex(name string) int {
 		if jsonInfo.FieldName == name {
 			return i
 		}
+		if strings.ToLower(jsonInfo.FieldName) == strings.ToLower(name) {
+			return i
+		}
 	}
 	return -1
 }
