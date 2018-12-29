@@ -1,6 +1,9 @@
 package netutils
 
-import "testing"
+import (
+	"fmt"
+	"testing"
+)
 
 func TestFormatMacAddr(t *testing.T) {
 	cases := []struct {
@@ -82,4 +85,77 @@ func TestIPV4AddrRange_Contains(t *testing.T) {
 		ipv4, _ := NewIPV4Addr(addr)
 		t.Logf("%s contains %s %v", prefix.String(), ipv4, ipRange.Contains(ipv4))
 	}
+}
+
+func TestIPV4AddrRange_Substract(t *testing.T) {
+	nir := NewIPV4AddrRange
+	ni := func(s string) IPV4Addr {
+		i, err := NewIPV4Addr(s)
+		if err != nil {
+			msg := fmt.Sprintf("bad ip addr %q: %s", s, err)
+			panic(msg)
+		}
+		return i
+	}
+	ar := nir(ni("192.168.2.0"), ni("192.168.2.255"))
+	t.Run("disjoint (left)", func(t *testing.T) {
+		ar2 := nir(ni("192.168.1.2"), ni("192.168.1.255"))
+		lefts, sub := ar.Substract(ar2)
+		if len(lefts) != 1 || !lefts[0].equals(ar) {
+			t.Fatalf("bad `lefts`")
+		}
+		if sub != nil {
+			t.Fatalf("bad `sub`: %#v", sub)
+		}
+	})
+	t.Run("overlap (cut right)", func(t *testing.T) {
+		ar2 := nir(ni("192.168.2.128"), ni("192.168.3.255"))
+		lefts, sub := ar.Substract(ar2)
+		if len(lefts) != 1 || !lefts[0].equals(nir(ni("192.168.2.0"), ni("192.168.2.127"))) {
+			t.Fatalf("bad `lefts`")
+		}
+		if sub == nil || !sub.equals(nir(ni("192.168.2.128"), ni("192.168.2.255"))) {
+			t.Fatalf("bad `sub`")
+		}
+	})
+	t.Run("contains (true subset)", func(t *testing.T) {
+		ar2 := nir(ni("192.168.2.33"), ni("192.168.2.44"))
+		lefts, sub := ar.Substract(ar2)
+		if len(lefts) != 2 || !lefts[0].equals(nir(ni("192.168.2.0"), ni("192.168.2.32"))) || !lefts[1].equals(nir(ni("192.168.2.45"), ni("192.168.2.255"))) {
+			t.Fatalf("bad `lefts`")
+		}
+		if sub == nil || !sub.equals(nir(ni("192.168.2.33"), ni("192.168.2.44"))) {
+			t.Fatalf("bad `sub`")
+		}
+	})
+	t.Run("contains (align left)", func(t *testing.T) {
+		ar2 := nir(ni("192.168.2.0"), ni("192.168.2.33"))
+		lefts, sub := ar.Substract(ar2)
+		if len(lefts) != 1 || !lefts[0].equals(nir(ni("192.168.2.34"), ni("192.168.2.255"))) {
+			t.Fatalf("bad `lefts`")
+		}
+		if !sub.equals(nir(ni("192.168.2.0"), ni("192.168.2.33"))) {
+			t.Fatalf("bad `sub`")
+		}
+	})
+	t.Run("contains (align right)", func(t *testing.T) {
+		ar2 := nir(ni("192.168.2.44"), ni("192.168.2.255"))
+		lefts, sub := ar.Substract(ar2)
+		if len(lefts) != 1 || !lefts[0].equals(nir(ni("192.168.2.0"), ni("192.168.2.43"))) {
+			t.Fatalf("bad `lefts`")
+		}
+		if !sub.equals(nir(ni("192.168.2.44"), ni("192.168.2.255"))) {
+			t.Fatalf("bad `sub`")
+		}
+	})
+	t.Run("contained by", func(t *testing.T) {
+		ar2 := nir(ni("192.168.1.255"), ni("192.168.3.0"))
+		lefts, sub := ar.Substract(ar2)
+		if len(lefts) != 0 {
+			t.Fatalf("bad `lefts`")
+		}
+		if !sub.equals(ar) {
+			t.Fatalf("bad `sub`")
+		}
+	})
 }
