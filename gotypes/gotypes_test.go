@@ -99,6 +99,53 @@ func TestSetValueString(t *testing.T) {
 	}
 }
 
+func TestSetValueStringArray(t *testing.T) {
+	cases := []struct {
+		In  []string
+		Val string
+		Out []string
+	}{
+		{[]string{}, "bcd", []string{"bcd"}},
+		{[]string{"a"}, "hello", []string{"a", "hello"}},
+		{[]string{"a"}, "hello,world", []string{"a", "hello", "world"}},
+	}
+	for _, c := range cases {
+		ref := reflect.ValueOf(&c).Elem()
+		ref1 := ref.Field(0)
+		e := SetValue(ref1, c.Val)
+		if e != nil {
+			t.Errorf("SetValue error %s", e)
+		}
+		if !reflect.DeepEqual(c.In, c.Out) {
+			t.Errorf("SetValue fail %v (%s) != %v", c.In, c.Val, c.Out)
+		}
+	}
+}
+
+func TestSetValueIntArray(t *testing.T) {
+	cases := []struct {
+		In  []int
+		Val string
+		Out []int
+	}{
+		{[]int{}, "1,2", []int{1, 2}},
+		{[]int{1}, "2", []int{1, 2}},
+		{[]int{1}, "2,3", []int{1, 2, 3}},
+		{[]int{1, 2}, "4,5", []int{1, 2, 4, 5}},
+	}
+	for _, c := range cases {
+		ref := reflect.ValueOf(&c).Elem()
+		ref1 := ref.Field(0)
+		e := SetValue(ref1, c.Val)
+		if e != nil {
+			t.Errorf("SetValue error %s", e)
+		}
+		if !reflect.DeepEqual(c.In, c.Out) {
+			t.Errorf("SetValue fail %v (%s) != %v", c.In, c.Val, c.Out)
+		}
+	}
+}
+
 func TestAppendValueInt(t *testing.T) {
 	cases := []struct {
 		In  []int
@@ -270,10 +317,10 @@ func TestParseSetValuePtr(t *testing.T) {
 	}{
 		{"BoolPtr", "true", true},
 		{"BoolPtr", "false", false},
-		{"IntPtr", "-100", -100},
-		{"UintPtr", "100", 100},
-		{"Float32Ptr", "100.1", 100.1},
-		{"Float64Ptr", "-100.1", -100.1},
+		{"IntPtr", "-100", int(-100)},
+		{"UintPtr", "100", uint(100)},
+		{"Float32Ptr", "100.1", float32(100.1)},
+		{"Float64Ptr", "-100.1", float64(-100.1)},
 		{"StringPtr", "holy", "holy"},
 		{"TimeISOPtr", "2018-08-27T04:20:26Z", mustParseTimeStr("2018-08-27T04:20:26Z")},
 		{"TimeMySQLPtr", "2018-08-27 12:20:26", mustParseTimeStr("2018-08-27 12:20:26")},
@@ -286,7 +333,13 @@ func TestParseSetValuePtr(t *testing.T) {
 				if err != nil {
 					t.Fatalf("SetValue(%q, %q): failed: %s", c.name, c.valStr, err)
 				}
-				if got := rvv.Interface(); reflect.DeepEqual(got, c.want) {
+				got := rvv.Interface()
+				if reflect.DeepEqual(got, c.want) {
+					t.Fatalf("SetValue(%q, %q): failed: got %#v, want %#v",
+						c.name, c.valStr, got, c.want)
+				}
+				got = rvv.Elem().Interface()
+				if !reflect.DeepEqual(got, c.want) {
 					t.Fatalf("SetValue(%q, %q): failed: got %#v, want %#v",
 						c.name, c.valStr, got, c.want)
 				}
