@@ -111,7 +111,7 @@ func fetchStructFieldValueSet(dataValue reflect.Value, allocatePtr bool) SStruct
 					continue
 				}
 				if fv.IsNil() {
-					if allocatePtr {
+					if fv.Kind() == reflect.Ptr && allocatePtr {
 						fv.Set(reflect.New(fv.Type().Elem()))
 					} else {
 						continue
