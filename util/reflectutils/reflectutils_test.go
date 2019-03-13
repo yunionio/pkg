@@ -15,6 +15,7 @@ type TestStruct struct {
 	Age int
 }
 
+/*
 func TestFindStructFieldValue(t *testing.T) {
 	test := TestStruct{}
 	testValue := reflect.Indirect(reflect.ValueOf(&test))
@@ -29,6 +30,7 @@ func TestFindStructFieldValue(t *testing.T) {
 		t.Errorf("name not found!")
 	}
 }
+*/
 
 func TestFillEmbededStructValue(t *testing.T) {
 	type BaseStruct struct {
@@ -51,7 +53,7 @@ func TestFillEmbededStructValue(t *testing.T) {
 	baseValue := reflect.Indirect(reflect.ValueOf(base))
 	layer2Value := reflect.Indirect(reflect.ValueOf(layer2))
 	filled := FillEmbededStructValue(layer2Value, baseValue)
-	t.Logf("filed: %v %s", filled, layer2)
+	t.Logf("filed: %#v %#v", filled, layer2)
 }
 
 func TestExpandInterface(t *testing.T) {
