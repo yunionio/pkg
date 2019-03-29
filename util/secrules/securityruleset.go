@@ -77,35 +77,25 @@ func isRuleEqual(rules []SecurityRule, _rules []SecurityRule) bool {
 		return false
 	}
 
-	sort.Slice(rules, func(i, j int) bool {
-		return rules[i].Priority < rules[j].Priority
+	sort.SliceStable(rules, func(i, j int) bool {
+		if rules[i].Priority < rules[j].Priority {
+			return true
+		} else if rules[i].Priority == rules[j].Priority {
+			return rules[i].String() < rules[j].String()
+		}
+		return false
 	})
-	sort.Slice(_rules, func(i, j int) bool {
-		return _rules[i].Priority < _rules[j].Priority
+	sort.SliceStable(_rules, func(i, j int) bool {
+		if _rules[i].Priority < _rules[j].Priority {
+			return true
+		} else if _rules[i].Priority == _rules[j].Priority {
+			return _rules[i].String() < _rules[j].String()
+		}
+		return false
 	})
 
-	rulePriority, initPriority := 0, 0
-	_rulePriority, _initPriority := 0, 0
 	for i := 0; i < len(rules); i++ {
-		if rulePriority != rules[i].Priority {
-			rulePriority = rules[i].Priority
-			initPriority++
-		}
-		find, ruleStr := false, rules[i].String()
-		for j := 0; j < len(_rules); j++ {
-			if _rulePriority != _rules[j].Priority {
-				_rulePriority = _rules[j].Priority
-				_initPriority++
-			}
-			//仅在每个优先级阶梯下进行对比
-			if initPriority != _initPriority {
-				continue
-			}
-			if _rules[j].String() == ruleStr {
-				find = true
-			}
-		}
-		if !find {
+		if rules[i].String() != _rules[i].String() {
 			return false
 		}
 	}
