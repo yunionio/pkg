@@ -57,6 +57,10 @@ func TestRules(t *testing.T) {
 			[]string{"in:allow tcp 3389", "in:allow tcp 22"},
 			[]string{"in:allow tcp 22", "in:allow tcp 3389"},
 		},
+		"test4_equal": {
+			[]string{"in:allow any", "out:allow any"},
+			[]string{"out:allow any", "in:allow any"},
+		},
 		"test4_notequal": {
 			[]string{"in:allow tcp 3389", "in:allow tcp 22", "out:allow any"},
 			[]string{"out:allow any"},
