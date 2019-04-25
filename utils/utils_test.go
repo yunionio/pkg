@@ -140,3 +140,20 @@ func TestArgsStringToArray(t *testing.T) {
 		})
 	}
 }
+
+func TestTruncateString(t *testing.T) {
+	cases := []struct {
+		In    string
+		Trunc int
+		Want  string
+	}{
+		{"abc", 5, "abc"},
+		{"abc", 2, "ab.."},
+	}
+	for _, c := range cases {
+		got := TruncateString(c.In, c.Trunc)
+		if got != c.Want {
+			t.Errorf("In: %s Trunc: %d Want: %s Got: %s", c.In, c.Trunc, c.Want, got)
+		}
+	}
+}
