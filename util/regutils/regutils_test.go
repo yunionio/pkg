@@ -58,6 +58,7 @@ func TestRegexp(t *testing.T) {
 
 		{"1.0.168.192.in-addr.arpa", "MatchPtr", MatchPtr, true},
 		{"0.168.192.in-addr.arpa", "MatchPtr", MatchPtr, false},
+		{"May 6, 2019 07:01:07 AM", "MatchZStackTime", MatchZStackTime, true},
 	}
 	for _, c := range cases {
 		got := c.regfunc(c.in)
