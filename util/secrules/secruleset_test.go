@@ -12,6 +12,11 @@ func TestSecRuleSet_AllowList(t *testing.T) {
 			t.Fatalf("not equal:\n%s\n%s", srs0, srs1)
 		}
 	}
+	t.Run("empty", func(t *testing.T) {
+		srs0 := SecurityRuleSet{}
+		srs1 := srs0.AllowList()
+		dieIf(t, srs0, srs1)
+	})
 	t.Run("all allow", func(t *testing.T) {
 		srs0 := SecurityRuleSet{
 			*MustParseSecurityRule("in:allow any"),
