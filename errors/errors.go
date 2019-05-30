@@ -12,16 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package netutils
+package errors
 
-import (
-	"github.com/pkg/errors"
-)
+import "github.com/pkg/errors"
 
-var (
-	ErrInvalidNumber  = errors.New("invalid number")
-	ErrOutOfRange     = errors.New("ip number out of range [0-255]")
-	ErrInvalidIPAddr  = errors.New("invalid ip address")
-	ErrInvalidMask    = errors.New("invalid mask")
-	ErrOutOfRangeMask = errors.New("out of range masklen [0-32]")
-)
+type Error string
+
+func (e Error) Error() string {
+	return string(e)
+}
+
+func Wrap(err error, msg string) error {
+	return errors.Wrap(err, msg)
+}
+
+func Wrapf(err error, format string, args ...interface{}) error {
+	return errors.Wrapf(err, format, args...)
+}
+
+func Cause(err error) error {
+	return errors.Cause(err)
+}
