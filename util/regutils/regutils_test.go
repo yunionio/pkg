@@ -213,3 +213,70 @@ func TestMatchCIDR(t *testing.T) {
 		}
 	}
 }
+
+func TestMatchDomainName(t *testing.T) {
+	// Taken from https://github.com/asaskevich/govalidator
+	var tests = []struct {
+		param    string
+		expected bool
+	}{
+		{"localhost", true},
+		{"a.bc", true},
+		{"a.b.", true},
+		{"a.b..", false},
+		{"localhost.local", true},
+		{"localhost.localdomain.intern", true},
+		{"l.local.intern", true},
+		{"ru.link.n.svpncloud.com", true},
+		{"-localhost", false},
+		{"localhost.-localdomain", false},
+		{"localhost.localdomain.-int", false},
+		{"_localhost", true},
+		{"localhost._localdomain", true},
+		{"localhost.localdomain._int", true},
+		{"lÖcalhost", false},
+		{"localhost.lÖcaldomain", false},
+		{"localhost.localdomain.üntern", false},
+		{"__", true},
+		{"localhost/", false},
+		{"127.0.0.1", false},
+		{"[::1]", false},
+		{"50.50.50.50", false},
+		{"localhost.localdomain.intern:65535", false},
+		{"漢字汉字", false},
+		{"www.jubfvq1v3p38i51622y0dvmdk1mymowjyeu26gbtw9andgynj1gg8z3msb1kl5z6906k846pj3sulm4kiyk82ln5teqj9nsht59opr0cs5ssltx78lfyvml19lfq1wp4usbl0o36cmiykch1vywbttcus1p9yu0669h8fj4ll7a6bmop505908s1m83q2ec2qr9nbvql2589adma3xsq2o38os2z3dmfh2tth4is4ixyfasasasefqwe4t2ub2fz1rme.de", false},
+	}
+
+	for _, test := range tests {
+		actual := MatchDomainName(test.param)
+		if actual != test.expected {
+			t.Errorf("Expected MatchDomainName(%q) to be %v, got %v", test.param, test.expected, actual)
+		}
+	}
+}
+
+func TestMatchDomainSRV(t *testing.T) {
+	// Taken from https://github.com/asaskevich/govalidator
+	var tests = []struct {
+		param    string
+		expected bool
+	}{
+		{"_etcd._tcp.example.com", true},
+		{"_._", false},
+		{"_._.", false},
+		{"_a._.", false},
+		{"_a._b.", false},
+		{"_a._b.c", true},
+		{"a", false},
+		{"a.b", false},
+		{"a.b.c", false},
+		{"_a.b.c", false},
+	}
+
+	for _, test := range tests {
+		actual := MatchDomainSRV(test.param)
+		if actual != test.expected {
+			t.Errorf("Expected MatchDomainSRV(%q) to be %v, got %v", test.param, test.expected, actual)
+		}
+	}
+}
