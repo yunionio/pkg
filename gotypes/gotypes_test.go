@@ -16,6 +16,7 @@ package gotypes
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -371,4 +372,102 @@ func TestParseSetValuePtr(t *testing.T) {
 			})
 		})
 	}
+}
+
+func TestConvertSliceElemType(t *testing.T) {
+	t.Run("ok", func(t *testing.T) {
+		cases := []struct {
+			name   string
+			inArg0 interface{}
+			inArg1 interface{}
+			r      interface{}
+		}{
+			{
+				name:   "interface{} to int",
+				inArg0: []interface{}{int(1), int(2)},
+				r:      []int{1, 2},
+			},
+			{
+				name:   "int to interface{}",
+				inArg0: []int{1, 2},
+				inArg1: (*interface{})(nil),
+				r:      []interface{}{int(1), int(2)},
+			},
+			{
+				name:   "interface{} to int (array)",
+				inArg0: [2]interface{}{int(1), int(2)},
+				r:      []int{1, 2},
+			},
+			{
+				name:   "int to interface{} (array)",
+				inArg0: [2]int{1, 2},
+				inArg1: (*interface{})(nil),
+				r:      []interface{}{int(1), int(2)},
+			},
+			{
+				name:   "interface{} to int (empty)",
+				inArg0: []interface{}{},
+				inArg1: (*int)(nil),
+				r:      []int{},
+			},
+			{
+				name:   "interface{} to int (empty, no arg1)",
+				inArg0: []interface{}{},
+				r:      []interface{}{},
+			},
+			{
+				name:   "int to interface{} (empty)",
+				inArg0: []int{},
+				inArg1: (*interface{})(nil),
+				r:      []interface{}{},
+			},
+			{
+				name:   "int to interface{} (empty, no arg1)",
+				inArg0: []int{},
+				r:      []int{},
+			},
+		}
+		for _, c := range cases {
+			t.Run(c.name, func(t *testing.T) {
+				got := ConvertSliceElemType(c.inArg0, c.inArg1)
+				if !reflect.DeepEqual(got, c.r) {
+					t.Errorf("want %#v, got %#v", c.r, got)
+				}
+			})
+		}
+	})
+	t.Run("panic", func(t *testing.T) {
+		cases := []struct {
+			name   string
+			inArg0 interface{}
+			inArg1 interface{}
+			substr string
+		}{
+			{
+				name:   "arg0 not slice or array",
+				inArg0: "",
+				substr: "slice or array",
+			},
+			{
+				name:   "arg1 not ptr kind",
+				inArg0: []int{},
+				inArg1: int(0),
+				substr: "be ptr kind",
+			},
+		}
+		for _, c := range cases {
+			t.Run(c.name, func(t *testing.T) {
+				defer func() {
+					if val := recover(); val == nil {
+						t.Errorf("expecting panic, got nil")
+					} else if s, ok := val.(string); !ok {
+						t.Errorf("expecting panic with string, got %#v", val)
+					} else if !strings.Contains(s, c.substr) {
+						t.Errorf("want %q in panic string %q", c.substr, s)
+					}
+				}()
+				ConvertSliceElemType(c.inArg0, c.inArg1)
+			})
+		}
+	})
 }
