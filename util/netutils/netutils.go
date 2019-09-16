@@ -329,6 +329,13 @@ func (pref *IPV4Prefix) String() string {
 	}
 }
 
+func (pref *IPV4Prefix) Equals(pref1 *IPV4Prefix) bool {
+	if pref1 == nil {
+		return false
+	}
+	return pref.ipRange.equals(pref1.ipRange)
+}
+
 func Mask2Len(mask IPV4Addr) int8 {
 	var maskLen int8 = 0
 	for {
