@@ -73,6 +73,12 @@ func TestRegexp(t *testing.T) {
 		{"1.0.168.192.in-addr.arpa", "MatchPtr", MatchPtr, true},
 		{"0.168.192.in-addr.arpa", "MatchPtr", MatchPtr, false},
 		{"May 6, 2019 07:01:07 AM", "MatchZStackTime", MatchZStackTime, true},
+		{"2019-09-17T02:52:26.095915238+08:00", "MatchFullIsoNanotime", MatchFullISOTime, true},
+		{"2019-09-17T02:52:26.095915238Z", "MatchFullIsoNanotime", MatchFullISOTime, true},
+		{"2019-09-17T02:52:26.095915Z", "MatchFullIsoTime", MatchFullISOTime, true},
+		{"2019-09-17T02:52:26.09591Z", "MatchFullIsoTime2", MatchFullISOTime, true},
+		{"2019-09-17T02:52:26.095915+08:00", "MatchFullIsoTime", MatchFullISOTime, true},
+		{"2019-09-17T02:52:26.095915+08:00", "MatchISOTime", MatchISOTime, false},
 	}
 	for _, c := range cases {
 		got := c.regfunc(c.in)
