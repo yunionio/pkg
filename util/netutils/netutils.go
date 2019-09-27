@@ -318,7 +318,7 @@ func Masklen2Mask(maskLen int8) IPV4Addr {
 type IPV4Prefix struct {
 	Address IPV4Addr
 	MaskLen int8
-	ipRange *IPV4AddrRange
+	ipRange IPV4AddrRange
 }
 
 func (pref *IPV4Prefix) String() string {
@@ -385,7 +385,12 @@ func NewIPV4Prefix(prefix string) (IPV4Prefix, error) {
 	if err != nil {
 		return IPV4Prefix{}, errors.Wrap(err, "ParsePrefix")
 	}
-	return IPV4Prefix{Address: addr, MaskLen: maskLen}, nil
+	pref := IPV4Prefix{
+		Address: addr,
+		MaskLen: maskLen,
+	}
+	pref.ipRange = pref.ToIPRange()
+	return pref, nil
 }
 
 func (prefix IPV4Prefix) ToIPRange() IPV4AddrRange {
@@ -395,10 +400,6 @@ func (prefix IPV4Prefix) ToIPRange() IPV4AddrRange {
 }
 
 func (prefix IPV4Prefix) Contains(ip IPV4Addr) bool {
-	if prefix.ipRange == nil {
-		ipRange := prefix.ToIPRange()
-		prefix.ipRange = &ipRange
-	}
 	return prefix.ipRange.Contains(ip)
 }
 
