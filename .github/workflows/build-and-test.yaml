@@ -1,0 +1,43 @@
+name: Build and test
+on:
+  pull_request:
+    types:
+      - assigned
+      - opened
+      - synchronize
+      - reopened
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+        with:
+          fetch-depth: 1
+      - uses: actions/setup-go@v1
+        with:
+          go-version: '1.13'
+      - name: prepare GOPATH
+        shell: bash
+        run: |
+          set -o xtrace
+          workdir="$HOME/go/src/yunion.io/x"
+          mkdir -p "$workdir"
+          mv "$HOME/work/pkg/pkg" "$workdir/"
+      - name: go get dependencies
+        shell: bash
+        run: |
+          set -o xtrace
+          workdir="$HOME/go/src/yunion.io/x"
+          export GOPATH="$HOME/go"
+          cd "$workdir/pkg"
+          go get -v -t -d ./...
+      - name: run test
+        shell: bash
+        run: |
+          set -o xtrace
+          workdir="$HOME/go/src/yunion.io/x"
+          export GOPATH="$HOME/go"
+          cd "$workdir/pkg"
+          go test -v ./...
