@@ -14,7 +14,10 @@
 
 package fifoutils
 
-import "testing"
+import (
+	"reflect"
+	"testing"
+)
 
 func TestFIFO_Pop(t *testing.T) {
 	fifo := NewFIFO()
@@ -22,23 +25,24 @@ func TestFIFO_Pop(t *testing.T) {
 	fifo.Push(2)
 	fifo.Push(3)
 	fifo.Push(4)
-	t.Logf("%d: %s", fifo.len, fifo.array)
-	val, err := fifo.Pop()
-	t.Logf("%s %s", val, err)
-	t.Logf("%d: %s", fifo.len, fifo.array)
-	val, err = fifo.Pop()
-	t.Logf("%s %s", val, err)
-	t.Logf("%d: %s", fifo.len, fifo.array)
-	val, err = fifo.Pop()
-	t.Logf("%s %s", val, err)
-	t.Logf("%d: %s", fifo.len, fifo.array)
-	val, err = fifo.Pop()
-	t.Logf("%s %s", val, err)
-	t.Logf("%d: %s", fifo.len, fifo.array)
-	val, err = fifo.Pop()
-	t.Logf("%s %s", val, err)
-	t.Logf("%d: %s", fifo.len, fifo.array)
-	val, err = fifo.Pop()
-	t.Logf("%s %s", val, err)
-	t.Logf("%d: %s", fifo.len, fifo.array)
+	ff := func(want interface{}, l int) {
+		got := fifo.Pop()
+		if !reflect.DeepEqual(got, want) {
+			t.Fatalf("bad val: got %#v, want %#v", got, want)
+		}
+		if fifo.len != l {
+			t.Fatalf("bad len: got %d, want %d", fifo.len, l)
+		}
+		for i := l; i < len(fifo.array); i++ {
+			if fifo.array[i] != nil {
+				t.Fatalf("bad val at %d, want nil, got %#v", i, fifo.array[i])
+			}
+		}
+	}
+	ff(1, 3)
+	ff(2, 2)
+	ff(3, 1)
+	ff(4, 0)
+	ff(nil, 0)
+	ff(nil, 0)
 }
