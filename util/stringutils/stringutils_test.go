@@ -15,14 +15,24 @@
 package stringutils
 
 import (
+	"fmt"
 	"testing"
 )
 
 func TestStringUtils(t *testing.T) {
 	t.Logf("%s", UUID4())
-	t.Logf("%s", Interface2String(nil))
-	t.Logf("%s", Interface2String(2))
-	t.Logf("%s", Interface2String("test string"))
+	if Interface2String(nil) != "" {
+		t.Errorf("Interface2String(nil) should be empty")
+	}
+	if Interface2String(2) != "2" {
+		t.Errorf(`Interface2String(2) should be "2"`)
+	}
+	if Interface2String("test string") != "test string" {
+		t.Errorf(`Interface2String("test string") should be "test string"`)
+	}
+	if Interface2String(fmt.Errorf("test error")) != "test error" {
+		t.Errorf(`Interface2String(fmt.Errorf("test error")) should be "test error"`)
+	}
 	type TestStruct struct {
 		Name   string
 		Age    int
