@@ -107,6 +107,9 @@ func TestSingularAggregate(t *testing.T) {
 	if s := agg.Errors()[0].Error(); s != "err" {
 		t.Errorf("expected 'err', got %q", s)
 	}
+	if s := Cause(agg).Error(); s != "err" {
+		t.Errorf("Cause(agg) expected 'err', got %q", s)
+	}
 
 	err = agg.(error)
 	if err == nil {
@@ -114,6 +117,9 @@ func TestSingularAggregate(t *testing.T) {
 	}
 	if s := err.Error(); s != "err" {
 		t.Errorf("expected 'err', got %q", s)
+	}
+	if s := Cause(err).Error(); s != "err" {
+		t.Errorf("Cause(err) expected 'err', got %q", s)
 	}
 }
 
@@ -135,6 +141,9 @@ func TestPluralAggregate(t *testing.T) {
 	if s := agg.Errors()[0].Error(); s != "abc" {
 		t.Errorf("expected '[abc, 123]', got %q", s)
 	}
+	if s := Cause(agg); s != ErrAggregate {
+		t.Errorf("Cause(agg) expect %q, got %q", ErrAggregate, s)
+	}
 
 	err = agg.(error)
 	if err == nil {
@@ -142,6 +151,9 @@ func TestPluralAggregate(t *testing.T) {
 	}
 	if s := err.Error(); s != "[abc, 123]" {
 		t.Errorf("expected '[abc, 123]', got %q", s)
+	}
+	if s := Cause(err); s != ErrAggregate {
+		t.Errorf("Cause(err) expect %q, got %q", ErrAggregate, s)
 	}
 }
 
