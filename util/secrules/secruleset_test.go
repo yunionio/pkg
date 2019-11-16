@@ -15,13 +15,36 @@
 package secrules
 
 import (
+	"sort"
 	"testing"
 
+	"yunion.io/x/log"
 	"yunion.io/x/pkg/util/netutils"
 )
 
 func TestSecRuleSet_AllowList(t *testing.T) {
+	srs0 := SecurityRuleSet{
+		*MustParseSecurityRule("out:deny 192.168.222.2 tcp 3389"),
+		*MustParseSecurityRule("out:allow any"),
+	}
+	rules := srs0.AllowList()
+	a, _ := netutils.NewIPV4Addr("192.168.222.2")
+	for _, rule := range rules {
+		switch rule.Protocol {
+		case PROTO_TCP:
+			ar := netutils.NewIPV4AddrRangeFromIPNet(rule.IPNet)
+			if ar.Contains(a) && rule.PortStart <= 3389 && rule.PortEnd >= 3389 {
+				log.Fatalf("allow list should not contain 192.168.222.2 tcp 3389")
+			}
+		case PROTO_ICMP, PROTO_UDP:
+			if rule.IPNet.String() != "0.0.0.0/0" {
+				log.Fatalf("proto %s shoud be merged", rule.Protocol)
+			}
+		}
+	}
 	dieIf := func(t *testing.T, srs0, srs1 SecurityRuleSet) {
+		sort.Sort(srs0)
+		sort.Sort(srs1)
 		if !srs0.equals(srs1) {
 			t.Fatalf("not equal:\n%s\n%s", srs0, srs1)
 		}
