@@ -18,30 +18,10 @@ import (
 	"sort"
 	"testing"
 
-	"yunion.io/x/log"
 	"yunion.io/x/pkg/util/netutils"
 )
 
 func TestSecRuleSet_AllowList(t *testing.T) {
-	srs0 := SecurityRuleSet{
-		*MustParseSecurityRule("out:deny 192.168.222.2 tcp 3389"),
-		*MustParseSecurityRule("out:allow any"),
-	}
-	rules := srs0.AllowList()
-	a, _ := netutils.NewIPV4Addr("192.168.222.2")
-	for _, rule := range rules {
-		switch rule.Protocol {
-		case PROTO_TCP:
-			ar := netutils.NewIPV4AddrRangeFromIPNet(rule.IPNet)
-			if ar.Contains(a) && rule.PortStart <= 3389 && rule.PortEnd >= 3389 {
-				log.Fatalf("allow list should not contain 192.168.222.2 tcp 3389")
-			}
-		case PROTO_ICMP, PROTO_UDP:
-			if rule.IPNet.String() != "0.0.0.0/0" {
-				log.Fatalf("proto %s shoud be merged", rule.Protocol)
-			}
-		}
-	}
 	dieIf := func(t *testing.T, srs0, srs1 SecurityRuleSet) {
 		sort.Sort(srs0)
 		sort.Sort(srs1)
@@ -186,6 +166,52 @@ func TestSecRuleSet_AllowList(t *testing.T) {
 		srs1 := srs0.AllowList()
 		srs1_ := SecurityRuleSet{
 			*MustParseSecurityRule("in:allow 192.168.2.0/24 tcp 22,80,3389,8080"),
+		}
+		dieIf(t, srs1, srs1_)
+	})
+	t.Run("cidr: merge", func(t *testing.T) {
+		srs0 := SecurityRuleSet{
+			*MustParseSecurityRule("out:deny 192.168.222.2 tcp 3389"),
+			*MustParseSecurityRule("out:allow any"),
+		}
+		srs1 := srs0.AllowList()
+		srs1_ := SecurityRuleSet{
+			*MustParseSecurityRule("out:allow 0.0.0.0/1 tcp 1-65535"),
+			*MustParseSecurityRule("out:allow 128.0.0.0/2 tcp 1-65535"),
+			*MustParseSecurityRule("out:allow 192.0.0.0/9 tcp 1-65535"),
+			*MustParseSecurityRule("out:allow 192.128.0.0/11 tcp 1-65535"),
+			*MustParseSecurityRule("out:allow 192.160.0.0/13 tcp 1-65535"),
+			*MustParseSecurityRule("out:allow 192.168.0.0/17 tcp 1-65535"),
+			*MustParseSecurityRule("out:allow 192.168.128.0/18 tcp 1-65535"),
+			*MustParseSecurityRule("out:allow 192.168.192.0/20 tcp 1-65535"),
+			*MustParseSecurityRule("out:allow 192.168.208.0/21 tcp 1-65535"),
+			*MustParseSecurityRule("out:allow 192.168.216.0/22 tcp 1-65535"),
+			*MustParseSecurityRule("out:allow 192.168.220.0/23 tcp 1-65535"),
+			*MustParseSecurityRule("out:allow 192.168.222.0/31 tcp 1-65535"),
+			*MustParseSecurityRule("out:allow 192.168.222.128/25 tcp 1-65535"),
+			*MustParseSecurityRule("out:allow 192.168.222.16/28 tcp 1-65535"),
+			*MustParseSecurityRule("out:allow 192.168.222.2 tcp 1-3388"),
+			*MustParseSecurityRule("out:allow 192.168.222.2 tcp 3390-65535"),
+			*MustParseSecurityRule("out:allow 192.168.222.3 tcp 1-65535"),
+			*MustParseSecurityRule("out:allow 192.168.222.32/27 tcp 1-65535"),
+			*MustParseSecurityRule("out:allow 192.168.222.4/30 tcp 1-65535"),
+			*MustParseSecurityRule("out:allow 192.168.222.64/26 tcp 1-65535"),
+			*MustParseSecurityRule("out:allow 192.168.222.8/29 tcp 1-65535"),
+			*MustParseSecurityRule("out:allow 192.168.223.0/24 tcp 1-65535"),
+			*MustParseSecurityRule("out:allow 192.168.224.0/19 tcp 1-65535"),
+			*MustParseSecurityRule("out:allow 192.169.0.0/16 tcp 1-65535"),
+			*MustParseSecurityRule("out:allow 192.170.0.0/15 tcp 1-65535"),
+			*MustParseSecurityRule("out:allow 192.172.0.0/14 tcp 1-65535"),
+			*MustParseSecurityRule("out:allow 192.176.0.0/12 tcp 1-65535"),
+			*MustParseSecurityRule("out:allow 192.192.0.0/10 tcp 1-65535"),
+			*MustParseSecurityRule("out:allow 193.0.0.0/8 tcp 1-65535"),
+			*MustParseSecurityRule("out:allow 194.0.0.0/7 tcp 1-65535"),
+			*MustParseSecurityRule("out:allow 196.0.0.0/6 tcp 1-65535"),
+			*MustParseSecurityRule("out:allow 200.0.0.0/5 tcp 1-65535"),
+			*MustParseSecurityRule("out:allow 208.0.0.0/4 tcp 1-65535"),
+			*MustParseSecurityRule("out:allow 224.0.0.0/3 tcp 1-65535"),
+			*MustParseSecurityRule("out:allow icmp"),
+			*MustParseSecurityRule("out:allow udp 1-65535"),
 		}
 		dieIf(t, srs1, srs1_)
 	})
