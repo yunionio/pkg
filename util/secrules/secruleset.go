@@ -200,6 +200,13 @@ func (srs SecurityRuleSet) collapse() SecurityRuleSet {
 			// save that contains, intersects
 		}
 	}
+	for i := range srs1 {
+		sr := &srs1[i]
+		if sr.PortStart <= 1 && sr.PortEnd >= 65535 {
+			sr.PortStart = -1
+			sr.PortEnd = -1
+		}
+	}
 
 	//merge cidr
 	sort.Slice(srs1, func(i, j int) bool {
