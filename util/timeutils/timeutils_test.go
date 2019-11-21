@@ -66,42 +66,38 @@ func TestTimeUtils(t *testing.T) {
 		t.Errorf("Parse ZStack time error! %s %s %s", tmLocal, tm5, tmLocal.Sub(tm6))
 	}
 
-	tm7, err := ParseTimeStr("2019-09-17T03:02:45.709546502+08:00")
-	if err != nil {
-		t.Fatalf("2019-09-17T03:02:45.709546502+08:00 fail: %s", err)
+	cases := []struct {
+		in   string
+		want string
+	}{
+		{in: "2019-09-17T03:02:45.709546502+08:00", want: "2019-09-17 03:02:45.709546502 +0800 CST"},
+		{in: "2019-09-17T03:15:42.480940759+08:00\n", want: "2019-09-17 03:15:42.480940759 +0800 CST"},
+		{in: "2019-09-03T11:25:26.81415Z\n", want: "2019-09-03 11:25:26.81415 +0000 UTC"},
+		{in: "2019-09-03T11:25:26.8141523Z\n", want: "2019-09-03 11:25:26.8141523 +0000 UTC"},
+		{in: "2019-11-19T18:54:48.084-08:00", want: "2019-11-19 18:54:48.084 -0800 -0800"},
 	}
-	t.Logf("%s", tm7.String())
-
-	tm8, err := ParseTimeStr("2019-09-17T03:15:42.480940759+08:00\n")
-	if err != nil {
-		t.Fatalf("2019-09-17T03:15:42.480940759+08:00 err %s", err)
+	for _, c := range cases {
+		tm, err := ParseTimeStr(c.in)
+		if err != nil {
+			t.Fatalf("%s fail: %v", c.in, err)
+		}
+		if tm.String() != c.want {
+			t.Fatalf("%s != %s", tm.String(), c.want)
+		}
 	}
-	t.Logf("%s", tm8.String())
-
-	tm9, err := ParseTimeStr("2019-09-03T11:25:26.81415Z\n")
-	if err != nil {
-		t.Fatalf("2019-09-03T11:25:26.81415Z err %s", err)
-	}
-	t.Logf("%s", tm9.String())
-
-	tm10, err := ParseTimeStr("2019-09-03T11:25:26.8141523Z\n")
-	if err != nil {
-		t.Fatalf("2019-09-03T11:25:26.8141523Z err %s", err)
-	}
-	t.Logf("%s", tm10.String())
 }
 
 func TestToFullIsoNanoTimeFormat(t *testing.T) {
 	cases := []struct {
-		in string
+		in   string
 		want string
-	} {
+	}{
 		{
-			in: "2019-09-17T20:50:17.66667134+08:00",
+			in:   "2019-09-17T20:50:17.66667134+08:00",
 			want: "2019-09-17T20:50:17.666671340+08:00",
 		},
 		{
-			in: "2019-09-17T20:50:17.66134+08:00",
+			in:   "2019-09-17T20:50:17.66134+08:00",
 			want: "2019-09-17T20:50:17.661340000+08:00",
 		},
 	}
