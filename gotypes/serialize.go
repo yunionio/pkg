@@ -35,6 +35,7 @@ var (
 	serializableAllocators   = map[reflect.Type]FuncSerializableAllocator{}
 	serializableTransformers = map[reflect.Type][]FuncSerializableTransformer{}
 	ErrTypeNotSerializable   = errors.New("Type not serializable")
+	ErrNeedRegisterAllocator = errors.New("Type need to register ISerializable allocator")
 )
 
 // RegisterSerializable registers an allocator func for the specified serializable type.
@@ -69,10 +70,25 @@ func IsSerializable(valType reflect.Type) bool {
 func NewSerializable(objType reflect.Type) (ISerializable, error) {
 	deserFunc, ok := serializableAllocators[objType]
 	if !ok {
-		return nil, ErrTypeNotSerializable
+		return defaultNewSerializable(objType)
 	}
 	retVal := deserFunc()
 	return retVal, nil
+}
+
+// defaultNewSerializable try to structure a ISerializable:
+// if T or *T implement ISerializable, return &T{}
+func defaultNewSerializable(objType reflect.Type) (ISerializable, error) {
+	if objType == nil || objType.Kind() == reflect.Interface {
+		return nil, ErrNeedRegisterAllocator
+	}
+	if objType.Kind() != reflect.Ptr {
+		objType = reflect.PtrTo(objType)
+	}
+	if !objType.Implements(ISerializableType) {
+		return nil, ErrTypeNotSerializable
+	}
+	return reflect.New(objType.Elem()).Interface().(ISerializable), nil
 }
 
 func Transform(objType reflect.Type, retVal ISerializable) ISerializable {
