@@ -54,3 +54,30 @@ func TestParseStructFieldJsonInfo_Name(t *testing.T) {
 		}
 	}
 }
+
+func BenchmarkFetchStructFieldValueSet(b *testing.B) {
+	type GuestIp struct {
+		GuestIpStart string `width:"16" charset:"ascii" nullable:"false" list:"user" update:"user" create:"required"`
+		GuestIpEnd   string `width:"16" charset:"ascii" nullable:"false" list:"user" update:"user" create:"required"`
+		GuestIpMask  int8   `nullable:"false" list:"user" update:"user" create:"required"`
+	}
+	type Network struct {
+		GuestIp
+		VlanId int `nullable:"false" default:"1" list:"user" update:"user" create:"optional"`
+		WireId string `width:"36" charset:"ascii" nullable:"false" list:"user" create:"required"`
+	}
+	j := Network{
+		GuestIp: GuestIp{
+			GuestIpStart: "10.168.10.1",
+			GuestIpEnd: "10.168.10.244",
+			GuestIpMask: 24,
+		},
+		VlanId: 123,
+		WireId: "8324234723a",
+	}
+	v := reflect.ValueOf(j)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = FetchStructFieldValueSet(v)
+	}
+}
