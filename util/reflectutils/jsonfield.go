@@ -90,7 +90,7 @@ func (info *SStructFieldInfo) MarshalName() string {
 }
 
 type SStructFieldValue struct {
-	Info  SStructFieldInfo
+	Info  *SStructFieldInfo
 	Value reflect.Value
 }
 
@@ -104,10 +104,30 @@ func FetchStructFieldValueSetForWrite(dataValue reflect.Value) SStructFieldValue
 	return fetchStructFieldValueSet(dataValue, true)
 }
 
-type sStructFieldInfoMap map[string]SStructFieldInfo
+type sStructFieldInfoMap struct {
+	indexMap map[string]int
+	infos []SStructFieldInfo
+}
 
 func newStructFieldInfoMap(cap int) sStructFieldInfoMap {
-	return make(map[string]SStructFieldInfo, cap)
+	return sStructFieldInfoMap{
+		indexMap: make(map[string]int, cap),
+		infos:    make([]SStructFieldInfo, 0, cap),
+	}
+}
+
+func (m *sStructFieldInfoMap) shrink() {
+	m.infos = m.infos[:len(m.infos):len(m.infos)]
+}
+
+func (m *sStructFieldInfoMap) get(name string) *SStructFieldInfo {
+	return &m.infos[m.indexMap[name]]
+}
+
+func (m *sStructFieldInfoMap) set(name string, info SStructFieldInfo) bool {
+	m.indexMap[name] = len(m.infos)
+	m.infos = append(m.infos, info)
+	return true
 }
 
 var structFieldInfoCache sync.Map
@@ -140,8 +160,9 @@ func fetchStructFieldInfos(dataType reflect.Type) sStructFieldInfoMap {
 				continue
 			}
 		}
-		smap[sf.Name] = ParseStructFieldJsonInfo(sf)
+		smap.set(sf.Name, ParseStructFieldJsonInfo(sf))
 	}
+	smap.shrink()
 	return smap
 }
 
@@ -187,9 +208,10 @@ func fetchStructFieldValueSet(dataValue reflect.Value, allocatePtr bool) SStruct
 				continue
 			}
 		}
-		if !fieldInfos[sf.Name].Ignore {
+		fieldInfo := fieldInfos.get(sf.Name)
+		if !fieldInfo.Ignore {
 			fields = append(fields, SStructFieldValue{
-				Info:  fieldInfos[sf.Name],
+				Info:  fieldInfo,
 				Value: fv,
 			})
 		}
