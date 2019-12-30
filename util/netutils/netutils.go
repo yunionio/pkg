@@ -320,11 +320,7 @@ func (ar IPV4AddrRange) equals(ar2 IPV4AddrRange) bool {
 }
 
 func Masklen2Mask(maskLen int8) IPV4Addr {
-	var mask uint32 = 0
-	for i := 0; i < int(maskLen); i += 1 {
-		mask |= 1 << uint(31-i)
-	}
-	return IPV4Addr(mask)
+	return IPV4Addr(^(uint32(1<<(32-maskLen)) - 1))
 }
 
 type IPV4Prefix struct {
