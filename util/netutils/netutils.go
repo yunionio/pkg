@@ -21,8 +21,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/pkg/errors"
-
+	"yunion.io/x/pkg/errors"
 	"yunion.io/x/pkg/util/regutils"
 )
 
