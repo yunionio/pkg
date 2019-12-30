@@ -16,6 +16,7 @@ package netutils
 
 import (
 	"fmt"
+	"math/bits"
 	"math/rand"
 	"net"
 	"strconv"
@@ -345,14 +346,7 @@ func (pref *IPV4Prefix) Equals(pref1 *IPV4Prefix) bool {
 }
 
 func Mask2Len(mask IPV4Addr) int8 {
-	var maskLen int8 = 0
-	for {
-		if (mask & (1 << uint(31-maskLen))) == 0 {
-			break
-		}
-		maskLen += 1
-	}
-	return maskLen
+	return int8(bits.LeadingZeros32(^uint32(mask)))
 }
 
 func ParsePrefix(prefix string) (IPV4Addr, int8, error) {
