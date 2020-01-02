@@ -23,16 +23,16 @@ func TestTimeUtils(t *testing.T) {
 	tm := time.Now().UTC()
 	tmLocal := time.Now()
 
-	t.Logf("isoTime: %s", IsoTime(tm))
-	t.Logf("isoNoSecondTime: %s", IsoNoSecondTime(time.Time{}))
-	t.Logf("FullIsoTime: %s", FullIsoTime(tm))
-	t.Logf("mysqlTime: %s", MysqlTime(tm))
-	t.Logf("CompactTime: %s", CompactTime(tm))
-	t.Logf("ShortDate: %s", ShortDate(tm))
-	t.Logf("Date: %s", DateStr(tm))
-	t.Logf("RFC2882: %s", RFC2882Time(tm))
-	t.Logf("ZStack: %s", ZStackTime(tmLocal))
-	t.Logf("FullIsoNanoTime: %s", FullIsoNanoTime(tmLocal))
+	t.Logf("example: isoTime: %s", IsoTime(tm))
+	t.Logf("example: isoNoSecondTime: %s", IsoNoSecondTime(time.Time{}))
+	t.Logf("example: FullIsoTime: %s", FullIsoTime(tm))
+	t.Logf("example: mysqlTime: %s", MysqlTime(tm))
+	t.Logf("example: CompactTime: %s", CompactTime(tm))
+	t.Logf("example: ShortDate: %s", ShortDate(tm))
+	t.Logf("example: Date: %s", DateStr(tm))
+	t.Logf("example: RFC2882: %s", RFC2882Time(tm))
+	t.Logf("example: ZStack: %s", ZStackTime(tmLocal))
+	t.Logf("example: FullIsoNanoTime: %s", FullIsoNanoTime(tmLocal))
 
 	tm2, err := ParseTimeStr(IsoTime(tm))
 	if err != nil {
@@ -66,23 +66,46 @@ func TestTimeUtils(t *testing.T) {
 		t.Errorf("Parse ZStack time error! %s %s %s", tmLocal, tm5, tmLocal.Sub(tm6))
 	}
 
+	wantParse := func(s string) time.Time {
+		tmStringFmt := "2006-01-02 15:04:05.999999999 -0700 MST"
+		r, err := time.Parse(tmStringFmt, s)
+		if err != nil {
+			t.Fatalf("error when mustParse %s: %v", s, err)
+		}
+		return r
+	}
 	cases := []struct {
 		in   string
-		want string
+		want time.Time
 	}{
-		{in: "2019-09-17T03:02:45.709546502+08:00", want: "2019-09-17 03:02:45.709546502 +0800 CST"},
-		{in: "2019-09-17T03:15:42.480940759+08:00\n", want: "2019-09-17 03:15:42.480940759 +0800 CST"},
-		{in: "2019-09-03T11:25:26.81415Z\n", want: "2019-09-03 11:25:26.81415 +0000 UTC"},
-		{in: "2019-09-03T11:25:26.8141523Z\n", want: "2019-09-03 11:25:26.8141523 +0000 UTC"},
-		{in: "2019-11-19T18:54:48.084-08:00", want: "2019-11-19 18:54:48.084 -0800 -0800"},
+		{
+			in:   "2019-09-17T03:02:45.709546502+08:00",
+			want: wantParse("2019-09-17 03:02:45.709546502 +0800 CST"),
+		},
+		{
+			in:   "2019-09-17T03:15:42.480940759+08:00\n",
+			want: wantParse("2019-09-17 03:15:42.480940759 +0800 CST"),
+		},
+		{
+			in:   "2019-09-03T11:25:26.81415Z\n",
+			want: wantParse("2019-09-03 11:25:26.81415 +0000 UTC"),
+		},
+		{
+			in:   "2019-09-03T11:25:26.8141523Z\n",
+			want: wantParse("2019-09-03 11:25:26.8141523 +0000 UTC"),
+		},
+		{
+			in:   "2019-11-19T18:54:48.084-08:00",
+			want: wantParse("2019-11-19 18:54:48.084 -0800 -08"),
+		},
 	}
 	for _, c := range cases {
 		tm, err := ParseTimeStr(c.in)
 		if err != nil {
 			t.Fatalf("%s fail: %v", c.in, err)
 		}
-		if tm.String() != c.want {
-			t.Fatalf("%s != %s", tm.String(), c.want)
+		if !tm.Equal(c.want) {
+			t.Fatalf("\n%s:\n got: %s\nwant: %s", c.in, tm, c.want)
 		}
 	}
 }

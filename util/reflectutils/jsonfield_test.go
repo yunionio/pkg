@@ -22,8 +22,8 @@ import (
 
 func TestParseStructFieldJsonInfo_Name(t *testing.T) {
 	type T struct {
-		FiCamel  int `validate:"name=,marshal_name=fi_camel"`
-		FiIgnore int `json:"-" validate:"name=,marshal_name=fi_ignore"`
+		FiCamel  int `validate:"name=fi_camel,marshal_name=fi_camel"`
+		FiIgnore int `json:"-" validate:"name=,marshal_name="`
 		FiDash   int `json:"-," validate:"name=-,marshal_name=-"`
 		FiJson   int `json:"json" validate:"name=json,marshal_name=json"`
 		FiName   int `json:"json" name:"name" validate:"name=name,marshal_name=name"`
@@ -63,14 +63,14 @@ func BenchmarkFetchStructFieldValueSet(b *testing.B) {
 	}
 	type Network struct {
 		GuestIp
-		VlanId int `nullable:"false" default:"1" list:"user" update:"user" create:"optional"`
+		VlanId int    `nullable:"false" default:"1" list:"user" update:"user" create:"optional"`
 		WireId string `width:"36" charset:"ascii" nullable:"false" list:"user" create:"required"`
 	}
 	j := Network{
 		GuestIp: GuestIp{
 			GuestIpStart: "10.168.10.1",
-			GuestIpEnd: "10.168.10.244",
-			GuestIpMask: 24,
+			GuestIpEnd:   "10.168.10.244",
+			GuestIpMask:  24,
 		},
 		VlanId: 123,
 		WireId: "8324234723a",

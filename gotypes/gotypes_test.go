@@ -246,14 +246,29 @@ func TestInCollection(t *testing.T) {
 }
 
 func TestGetInstanceTypeName(t *testing.T) {
-	var a int32
-	t.Logf("%s", GetInstanceTypeName(a))
-
-	type STestStruct struct {
+	{
+		var (
+			a    int32
+			want = "int32"
+		)
+		if got := GetInstanceTypeName(a); got != want {
+			t.Fatalf("want %s, got %s", want, got)
+		}
 	}
 
-	t.Logf("%s", GetInstanceTypeName(STestStruct{}))
-	t.Logf("%s", GetInstanceTypeName(&STestStruct{}))
+	{
+		type STestStruct struct{}
+		var (
+			want = "STestStruct"
+			a    = STestStruct{}
+		)
+		if got := GetInstanceTypeName(a); got != want {
+			t.Fatalf("want %s, got %s", want, got)
+		}
+		if got := GetInstanceTypeName(&a); got != want {
+			t.Fatalf("ptr type name: want %s, got %s", want, got)
+		}
+	}
 }
 
 func TestIsNil(t *testing.T) {

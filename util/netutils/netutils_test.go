@@ -58,19 +58,71 @@ func TestIPV4Addr_StepDown(t *testing.T) {
 	t.Logf("Stepdown: %s", ipaddr.StepDown())
 }
 
+func TestNewIPV4Addr(t *testing.T) {
+	cases := []struct {
+		in  string
+		out IPV4Addr
+	}{
+		{
+			in:  "", // maybe used by ":8080"
+			out: IPV4Addr(0),
+		},
+		{
+			in:  "0.0.0.0",
+			out: IPV4Addr(0),
+		},
+		{
+			in:  "192.168.1.0",
+			out: IPV4Addr(192<<24 | 168<<16 | 1<<8),
+		},
+	}
+	for _, c := range cases {
+		got, err := NewIPV4Addr(c.in)
+		if err != nil {
+			t.Fatalf("(%q): err : %v", c.in, err)
+		}
+		if got != c.out {
+			t.Fatalf("(%q): got %s, want %s", c.in, got, c.out)
+		}
+	}
+}
+
 func TestMasklen2Mask(t *testing.T) {
-
-	t.Logf("%s", Masklen2Mask(0))
-	t.Logf("%s", Masklen2Mask(1))
-	t.Logf("%s", Masklen2Mask(23))
-	t.Logf("%s", Masklen2Mask(24))
-	t.Logf("%s", Masklen2Mask(32))
-
-	t.Logf("%d", Mask2Len(Masklen2Mask(0)))
-	t.Logf("%d", Mask2Len(Masklen2Mask(32)))
-	t.Logf("%d", Mask2Len(Masklen2Mask(24)))
-	t.Logf("%d", Mask2Len(Masklen2Mask(1)))
-
+	cases := []struct {
+		in  int8
+		out IPV4Addr
+	}{
+		{
+			in:  0,
+			out: IPV4Addr(0),
+		},
+		{
+			in:  1,
+			out: IPV4Addr(1 << 31),
+		},
+		{
+			in:  23,
+			out: IPV4Addr(^(uint32(1<<9) - 1)),
+		},
+		{
+			in:  24,
+			out: IPV4Addr(^(uint32(1<<8) - 1)),
+		},
+		{
+			in:  32,
+			out: IPV4Addr(^(uint32(1<<0) - 1)),
+		},
+	}
+	for _, c := range cases {
+		got := Masklen2Mask(c.in)
+		if got != c.out {
+			t.Fatalf("(%2d): got %s, want %s", c.in, got, c.out)
+		}
+		in2 := Mask2Len(got)
+		if in2 != c.in {
+			t.Fatalf("(%2d): got %d", c.in, in2)
+		}
+	}
 }
 
 func TestIPRangeRandom(t *testing.T) {

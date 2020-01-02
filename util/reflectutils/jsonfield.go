@@ -97,7 +97,7 @@ func ParseStructFieldJsonInfo(sf reflect.StructField) SStructFieldInfo {
 	if val, ok := info.Tags["name"]; ok {
 		info.Name = val
 	}
-	if len(info.Name) == 0 {
+	if !info.Ignore && len(info.Name) == 0 {
 		info.Name = utils.CamelSplit(info.FieldName, "_")
 	}
 	return info

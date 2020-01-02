@@ -17,18 +17,15 @@ package tristate
 import "testing"
 
 func TestTriState(t *testing.T) {
-	if True.Bool() {
-		t.Logf("True == true")
+	assert := func(hold bool, fmtStr string, args ...interface{}) {
+		if !hold {
+			t.Fatalf(fmtStr, args...)
+		}
 	}
-	if !False.Bool() {
-		t.Logf("False == false")
-	}
-	if !None.Bool() {
-		t.Logf("None == false")
-	}
+	assert(True.Bool(), "True != true")
+	assert(!False.Bool(), "False != false")
+	assert(!None.Bool(), "None != false")
 
 	var val TriState
-	if val.IsNone() {
-		t.Logf("val is None")
-	}
+	assert(val.IsNone(), "val is None")
 }
