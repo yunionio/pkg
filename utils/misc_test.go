@@ -17,6 +17,7 @@ package utils
 import (
 	"fmt"
 	"reflect"
+	"sort"
 	"testing"
 	"time"
 )
@@ -145,6 +146,8 @@ func TestSelectDistinct(t *testing.T) {
 				t.Errorf("SelectDistinct() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
+			sort.Strings(got)
+			sort.Strings(tt.want)
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("SelectDistinct() = %v, want %v", got, tt.want)
 			}
