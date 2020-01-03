@@ -22,8 +22,11 @@ import (
 
 func TestParseStructFieldJsonInfo_Name(t *testing.T) {
 	type T struct {
+		FiNameTag       int `name:"heck" json:"other" validate:"name=heck,marshal_name=heck"`
+		FiNameTagIgnore int `name:"heck" json:"-"     validate:"name=heck,marshal_name=heck"`
+
 		FiCamel  int `validate:"name=fi_camel,marshal_name=fi_camel"`
-		FiIgnore int `json:"-" validate:"name=,marshal_name="`
+		FiIgnore int `json:"-" validate:"name=,marshal_name=fi_ignore"`
 		FiDash   int `json:"-," validate:"name=-,marshal_name=-"`
 		FiJson   int `json:"json" validate:"name=json,marshal_name=json"`
 		FiName   int `json:"json" name:"name" validate:"name=name,marshal_name=name"`
