@@ -20,6 +20,7 @@ import (
 )
 
 func TestFibonacciRetrier(t *testing.T) {
+	jitTol := 5 * time.Millisecond
 	t.Run("maxTries=3", func(t *testing.T) {
 		startTime := time.Now()
 		fibr := NewFibonacciRetrierMaxTries(3, func(FibonacciRetrier) (bool, error) {
@@ -34,7 +35,6 @@ func TestFibonacciRetrier(t *testing.T) {
 			t.Errorf("should be fibonacci err max tries exceeded: got %v", err)
 		}
 		elapsed := time.Since(startTime)
-		t.Logf("wall time elapsed %s", elapsed)
 		if fibr.Elapsed()-elapsed > time.Millisecond {
 			t.Errorf("wall time elapsed %s, got %s", elapsed, fibr.Elapsed())
 		}
@@ -57,12 +57,11 @@ func TestFibonacciRetrier(t *testing.T) {
 			t.Errorf("should be fibonacci err max elapse exceeded: got %v", err)
 		}
 		elapsed := time.Since(startTime)
-		if elapsed-6*time.Second > time.Millisecond {
-			t.Errorf("wall time elapsed %s, expecting around %s", 3*time.Second, 6*time.Second)
+		if elapsed-6*time.Second > jitTol {
+			t.Errorf("wall time elapsed %s, expecting around %s", elapsed, 6*time.Second)
 		}
-		t.Logf("wall time elapsed %s", elapsed)
 		gotElapsed1 := fibr.Elapsed()
-		if gotElapsed1-elapsed > time.Millisecond {
+		if gotElapsed1-elapsed > jitTol {
 			t.Errorf("wall time elapsed %s, got %s", elapsed, gotElapsed1)
 		}
 
