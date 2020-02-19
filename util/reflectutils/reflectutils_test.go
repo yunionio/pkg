@@ -93,3 +93,55 @@ func TestSetStructFieldValue(t *testing.T) {
 		t.Errorf("Fail to find struct field")
 	}
 }
+
+func TestFindAnonymouStructPointer(t *testing.T) {
+	type Struct1 struct {
+		Name1 string
+	}
+	type Struct2 struct {
+		Name2 string
+		Struct1
+	}
+	type Struct3 struct {
+		Name3 string
+		Struct2
+	}
+
+	s3 := Struct3{}
+	var t3 *Struct3
+	var t2 *Struct2
+	var t1 *Struct1
+
+	err := FindAnonymouStructPointer(&s3, t3)
+	if err == nil {
+		t.Errorf("t3 is not a pointer to pointer, shoud fail")
+	}
+	err = FindAnonymouStructPointer(s3, &t3)
+	if err == nil {
+		t.Errorf("s3 is not pointer, should fail")
+	}
+
+	err = FindAnonymouStructPointer(&s3, &t3)
+	if err != nil {
+		t.Errorf("Fail to find Struct3 in Struct3")
+	}
+	if t3 != &s3 {
+		t.Errorf("t3 != &s3")
+	}
+
+	err = FindAnonymouStructPointer(&s3, &t2)
+	if err != nil {
+		t.Errorf("Fail to find Struct2 in Struct3")
+	}
+	if t2 != &s3.Struct2 {
+		t.Errorf("t2 != &s3.Struct2")
+	}
+
+	err = FindAnonymouStructPointer(&s3, &t1)
+	if err != nil {
+		t.Errorf("Fail to find Struct1 in Struct3")
+	}
+	if t1 != &s3.Struct1 {
+		t.Errorf("t1 != &s3.Struct1")
+	}
+}
