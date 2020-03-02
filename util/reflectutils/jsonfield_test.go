@@ -84,3 +84,25 @@ func BenchmarkFetchStructFieldValueSet(b *testing.B) {
 		_ = FetchStructFieldValueSet(v)
 	}
 }
+
+func TestGetStructFieldIndexes(t *testing.T) {
+	type Embeded struct {
+		Name string `json:"name"`
+	}
+	type Struct1 struct {
+		Embeded
+		Prop1 string `json:"prop1"`
+	}
+	type Struct2 struct {
+		Embeded
+		Prop2 string `json:"prop2"`
+	}
+	type TopStruct struct {
+		Struct1
+		Struct2
+	}
+	s := TopStruct{}
+	set := FetchStructFieldValueSet(reflect.ValueOf(s))
+	indexes := set.GetStructFieldIndexes("name")
+	t.Logf("%v", indexes)
+}
