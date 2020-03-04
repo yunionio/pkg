@@ -106,3 +106,34 @@ func TestGetStructFieldIndexes(t *testing.T) {
 	indexes := set.GetStructFieldIndexes("name")
 	t.Logf("%v", indexes)
 }
+
+func TestParseFieldJsonInfo(t *testing.T) {
+	cases := []struct {
+		Name string
+		Tag  string
+		Want string
+	}{
+		{
+			Name: "DBInstanceId",
+			Tag:  `name:"dbinstance_id"`,
+			Want: "dbinstance_id",
+		},
+		{
+			Name: "DBInstanceId",
+			Tag:  `json:"dbinstance_id"`,
+			Want: "dbinstance_id",
+		},
+		{
+			Name: "DBInstanceId",
+			Tag:  ``,
+			Want: "db_instance_id",
+		},
+	}
+
+	for _, c := range cases {
+		info := ParseFieldJsonInfo(c.Name, reflect.StructTag(c.Tag))
+		if info.Name != c.Want {
+			t.Errorf("TestParseFieldJsonInfo want %s got %s", c.Want, info.Name)
+		}
+	}
+}
