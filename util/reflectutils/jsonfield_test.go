@@ -137,3 +137,132 @@ func TestParseFieldJsonInfo(t *testing.T) {
 		}
 	}
 }
+
+func TestOverrideStructTagsCompond(t *testing.T) {
+	type StatusBase struct {
+		Status string `default:"init"`
+	}
+	type EnabledBase struct {
+		Enabled *bool `default:"false"`
+	}
+	type Compond struct {
+		StatusBase `default:"offline"`
+		EnabledBase
+	}
+	type TopStruct struct {
+		Compond `"status->default":"online" "enabled->default":"true"`
+	}
+	cases := []struct {
+		Object interface{}
+		Want   map[string]map[string]string
+	}{
+		{
+			StatusBase{},
+			map[string]map[string]string{
+				"status": map[string]string{
+					"default": "init",
+				},
+			},
+		},
+		{
+			EnabledBase{},
+			map[string]map[string]string{
+				"enabled": map[string]string{
+					"default": "false",
+				},
+			},
+		},
+		{
+			Compond{},
+			map[string]map[string]string{
+				"status": map[string]string{
+					"default": "offline",
+				},
+				"enabled": map[string]string{
+					"default": "false",
+				},
+			},
+		},
+		{
+			TopStruct{},
+			map[string]map[string]string{
+				"status": map[string]string{
+					"default": "online",
+				},
+				"enabled": map[string]string{
+					"default": "true",
+				},
+			},
+		},
+	}
+	for _, c := range cases {
+		set := FetchStructFieldValueSet(reflect.ValueOf(c.Object))
+		got := make(map[string]map[string]string)
+		for _, s := range set {
+			got[s.Info.MarshalName()] = s.Info.Tags
+		}
+		if !reflect.DeepEqual(got, c.Want) {
+			t.Errorf("Got: %s Want: %s", got, c.Want)
+		}
+	}
+}
+
+func TestOverrideStructTags(t *testing.T) {
+	type Embeded struct {
+		Name string `json:"name" update:"user"`
+	}
+	type Struct1 struct {
+		Embeded `update:"admin" create:"required" default:"emily"`
+	}
+	type Struct2 struct {
+		Embeded `update:"domain" create:"optional"`
+	}
+	type TopStruct struct {
+		Struct1 `create:"optional" default:""`
+	}
+
+	cases := []struct {
+		Object interface{}
+		Want   map[string]string
+	}{
+		{
+			Embeded{},
+			map[string]string{
+				"json":   "name",
+				"update": "user",
+			},
+		},
+		{
+			Struct1{},
+			map[string]string{
+				"json":    "name",
+				"update":  "admin",
+				"create":  "required",
+				"default": "emily",
+			},
+		},
+		{
+			Struct2{},
+			map[string]string{
+				"json":   "name",
+				"update": "domain",
+				"create": "optional",
+			},
+		},
+		{
+			TopStruct{},
+			map[string]string{
+				"json":    "name",
+				"update":  "admin",
+				"create":  "optional",
+				"default": "",
+			},
+		},
+	}
+	for _, c := range cases {
+		set := FetchStructFieldValueSet(reflect.ValueOf(c.Object))
+		if !reflect.DeepEqual(set[0].Info.Tags, c.Want) {
+			t.Errorf("Got: %s Want: %s", set[0].Info.Tags, c.Want)
+		}
+	}
+}
