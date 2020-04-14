@@ -266,3 +266,130 @@ func TestOverrideStructTags(t *testing.T) {
 		}
 	}
 }
+
+func TestExpandAmbiguousPrefix(t *testing.T) {
+	type Embeded struct {
+		Provider      string `json:"provider"`
+		Cloudregion   string `json:"cloudregion"`
+		CloudregionId string `json:"cloudregion_id" "yunion:deprecated-by":"cloudregion"`
+	}
+	type Struct1 struct {
+		Embeded
+
+		Name string `json:"name"`
+	}
+	type Struct2 struct {
+		Embeded
+
+		Value string `json:"value"`
+	}
+	type TopStruct struct {
+		Struct1 `"yunion:ambiguous-prefix":"vpc_"`
+		Struct2
+	}
+	type TopStruct2 struct {
+		Struct1
+		Struct2
+	}
+
+	cases := []struct {
+		Obj   interface{}
+		Cases []struct {
+			Key   string
+			Count int
+		}
+	}{
+		{
+			Obj: TopStruct{},
+			Cases: []struct {
+				Key   string
+				Count int
+			}{
+				{
+					Key:   "provider",
+					Count: 1,
+				},
+				{
+					Key:   "cloudregion",
+					Count: 1,
+				},
+				{
+					Key:   "cloudregion_id",
+					Count: 1,
+				},
+				{
+					Key:   "vpc_provider",
+					Count: 1,
+				},
+				{
+					Key:   "vpc_cloudregion",
+					Count: 1,
+				},
+				{
+					Key:   "vpc_cloudregion_id",
+					Count: 1,
+				},
+				{
+					Key:   "name",
+					Count: 1,
+				},
+				{
+					Key:   "value",
+					Count: 1,
+				},
+			},
+		},
+		{
+			Obj: TopStruct2{},
+			Cases: []struct {
+				Key   string
+				Count int
+			}{
+				{
+					Key:   "provider",
+					Count: 2,
+				},
+				{
+					Key:   "cloudregion",
+					Count: 2,
+				},
+				{
+					Key:   "cloudregion_id",
+					Count: 2,
+				},
+				{
+					Key:   "vpc_provider",
+					Count: 0,
+				},
+				{
+					Key:   "vpc_cloudregion",
+					Count: 0,
+				},
+				{
+					Key:   "vpc_cloudregion_id",
+					Count: 0,
+				},
+				{
+					Key:   "name",
+					Count: 1,
+				},
+				{
+					Key:   "value",
+					Count: 1,
+				},
+			},
+		},
+	}
+
+	for _, c := range cases {
+		fields := FetchStructFieldValueSet(reflect.ValueOf(c.Obj))
+		for _, ci := range c.Cases {
+			indexes := fields.GetStructFieldIndexes(ci.Key)
+			if len(indexes) != ci.Count {
+				t.Errorf("key %s expect %d got %d", ci.Key, ci.Count, len(indexes))
+			} else {
+				t.Logf("key %s expect %d got %d", ci.Key, ci.Count, len(indexes))
+			}
+		}
+	}
+}
