@@ -384,7 +384,7 @@ func TestExpandAmbiguousPrefix(t *testing.T) {
 	for _, c := range cases {
 		fields := FetchStructFieldValueSet(reflect.ValueOf(c.Obj))
 		for _, ci := range c.Cases {
-			indexes := fields.GetStructFieldIndexes(ci.Key)
+			indexes := fields.GetStructFieldIndexes2(ci.Key, true)
 			if len(indexes) != ci.Count {
 				t.Errorf("key %s expect %d got %d", ci.Key, ci.Count, len(indexes))
 			} else {
