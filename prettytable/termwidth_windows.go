@@ -17,9 +17,18 @@
 package prettytable
 
 import (
-	"yunion.io/x/pkg/errors"
+	"os"
+
+	"golang.org/x/sys/windows"
 )
 
 func termWidth() (int, error) {
-	return -1, errors.ErrNotSupported
+	var (
+		h    = windows.Handle(os.Stdout.Fd())
+		info windows.ConsoleScreenBufferInfo
+	)
+	if err := windows.GetConsoleScreenBufferInfo(h, &info); err != nil {
+		return -1, err
+	}
+	return int(info.Size.X), nil
 }
