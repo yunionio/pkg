@@ -53,6 +53,8 @@ const (
 )
 
 type SecurityRule struct {
+	Name        string
+	ExternalId  string
 	Priority    int // [1, 100]
 	Action      TSecurityRuleAction
 	IPNet       *net.IPNet
