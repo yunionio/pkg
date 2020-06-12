@@ -172,3 +172,22 @@ func TestTruncateString(t *testing.T) {
 		}
 	}
 }
+
+func BenchmarkCamelSplitTokens(b *testing.B) {
+	cases := []struct {
+		in   string
+		want string
+	}{
+		{"TEST", "test"},
+		{"GPUTestScore", "gpu-test-score"},
+		{"UserName", "user-name"},
+		{"AuthURL", "auth-url"},
+	}
+	for _, c := range cases {
+		b.Run(c.in, func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				CamelSplitTokens(c.in)
+			}
+		})
+	}
+}
