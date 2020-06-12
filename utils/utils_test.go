@@ -55,6 +55,7 @@ func TestCamel2Kebab(t *testing.T) {
 		{"SourceVSwitchId", "source-vswitch-id"},
 		{"SNATEntry", "snat-entry"},
 		{"HAProxy", "ha-proxy"},
+		{"ATest", "atest"},
 	}
 	for _, c := range cases {
 		got := CamelSplit(c.in, "-")
