@@ -145,3 +145,26 @@ func TestFindAnonymouStructPointer(t *testing.T) {
 		t.Errorf("t1 != &s3.Struct1")
 	}
 }
+
+func BenchmarkGetStructFieldIndexes2(b *testing.B) {
+	type T struct {
+		Foo     string
+		FooBar  string
+		FFooBar string
+		FFFF    string
+	}
+	obj := T{}
+	objV := reflect.ValueOf(obj)
+	fvset := FetchAllStructFieldValueSet(objV)
+
+	b.Run("nonexist,strict=false", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			fvset.GetStructFieldIndexes2("ether_super_real", false)
+		}
+	})
+	b.Run("exist,strict=false", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			fvset.GetStructFieldIndexes2("foo", false)
+		}
+	})
+}
