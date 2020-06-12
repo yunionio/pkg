@@ -281,7 +281,15 @@ func (fields SStructFieldValueSet) GetStructFieldIndexes(name string) []int {
 }
 
 func (fields SStructFieldValueSet) GetStructFieldIndexes2(name string, strictMode bool) []int {
-	ret := make([]int, 0)
+	var (
+		ret       []int
+		kebabName string
+		capName   string
+	)
+	if !strictMode && len(fields) > 0 {
+		kebabName = utils.CamelSplit(name, "_")
+		capName = utils.Capitalize(name)
+	}
 	for i := range fields {
 		if fields[i].Info.Ignore {
 			continue
@@ -291,17 +299,12 @@ func (fields SStructFieldValueSet) GetStructFieldIndexes2(name string, strictMod
 			continue
 		}
 		if !strictMode {
-			if utils.CamelSplit(fields[i].Info.FieldName, "_") == utils.CamelSplit(name, "_") {
+			if utils.CamelSplit(fields[i].Info.FieldName, "_") == kebabName {
 				ret = append(ret, i)
-				continue
-			}
-			if fields[i].Info.FieldName == name {
+			} else if fields[i].Info.FieldName == name {
 				ret = append(ret, i)
-				continue
-			}
-			if fields[i].Info.FieldName == utils.Capitalize(name) {
+			} else if fields[i].Info.FieldName == capName {
 				ret = append(ret, i)
-				continue
 			}
 		}
 	}
