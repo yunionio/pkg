@@ -298,19 +298,20 @@ func (fields SStructFieldValueSet) GetStructFieldIndexes2(name string, strictMod
 		capName = utils.Capitalize(name)
 	}
 	for i := range fields {
-		if fields[i].Info.Ignore {
+		info := fields[i].Info
+		if info.Ignore {
 			continue
 		}
-		if fields[i].Info.MarshalName() == name {
+		if info.MarshalName() == name {
 			ret = append(ret, i)
 			continue
 		}
 		if !strictMode {
-			if fields[i].Info.kebabFieldName == kebabName {
+			if info.kebabFieldName == kebabName {
 				ret = append(ret, i)
-			} else if fields[i].Info.FieldName == name {
+			} else if info.FieldName == name {
 				ret = append(ret, i)
-			} else if fields[i].Info.FieldName == capName {
+			} else if info.FieldName == capName {
 				ret = append(ret, i)
 			}
 		}
