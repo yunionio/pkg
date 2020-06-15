@@ -55,6 +55,7 @@ func TestCamel2Kebab(t *testing.T) {
 		{"SourceVSwitchId", "source-vswitch-id"},
 		{"SNATEntry", "snat-entry"},
 		{"HAProxy", "ha-proxy"},
+		{"ATest", "atest"},
 	}
 	for _, c := range cases {
 		got := CamelSplit(c.in, "-")
@@ -169,5 +170,24 @@ func TestTruncateString(t *testing.T) {
 		if got != c.Want {
 			t.Errorf("In: %s Trunc: %d Want: %s Got: %s", c.In, c.Trunc, c.Want, got)
 		}
+	}
+}
+
+func BenchmarkCamelSplitTokens(b *testing.B) {
+	cases := []struct {
+		in   string
+		want string
+	}{
+		{"TEST", "test"},
+		{"GPUTestScore", "gpu-test-score"},
+		{"UserName", "user-name"},
+		{"AuthURL", "auth-url"},
+	}
+	for _, c := range cases {
+		b.Run(c.in, func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				CamelSplitTokens(c.in)
+			}
+		})
 	}
 }
