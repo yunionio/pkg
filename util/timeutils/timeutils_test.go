@@ -131,3 +131,24 @@ func TestToFullIsoNanoTimeFormat(t *testing.T) {
 		}
 	}
 }
+
+func TestParseTimeStrInTimeZone(t *testing.T) {
+	cases := []struct {
+		in       string
+		timezone string
+		want     string
+	}{
+		{
+			in:       "2020-06-01",
+			timezone: "Asia/Shanghai",
+			want:     "2020-05-31T16:00:00Z",
+		},
+	}
+	for _, c := range cases {
+		localTm, _ := ParseTimeStrInTimeZone(c.in, c.timezone)
+		utcTm, _ := ParseTimeStr(c.want)
+		if localTm != utcTm {
+			t.Errorf("localtime %s != utcTime %s", localTm, utcTm)
+		}
+	}
+}
