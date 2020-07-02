@@ -56,6 +56,8 @@ func TestCamel2Kebab(t *testing.T) {
 		{"SNATEntry", "snat-entry"},
 		{"HAProxy", "ha-proxy"},
 		{"ATest", "atest"},
+		{"SAMLMetadata", "saml-metadata"},
+		{"IPAddress", "ip-address"},
 	}
 	for _, c := range cases {
 		got := CamelSplit(c.in, "-")
