@@ -271,7 +271,7 @@ func TestExpandAmbiguousPrefix(t *testing.T) {
 	type Embeded struct {
 		Provider      string `json:"provider"`
 		Cloudregion   string `json:"cloudregion"`
-		CloudregionId string `json:"cloudregion_id" "yunion:deprecated-by":"cloudregion"`
+		CloudregionId string `json:"cloudregion_id" yunion-deprecated-by:"cloudregion"`
 	}
 	type Struct1 struct {
 		Embeded
@@ -284,7 +284,7 @@ func TestExpandAmbiguousPrefix(t *testing.T) {
 		Value string `json:"value"`
 	}
 	type TopStruct struct {
-		Struct1 `"yunion:ambiguous-prefix":"vpc_"`
+		Struct1 `yunion-ambiguous-prefix:"vpc_"`
 		Struct2
 	}
 	type TopStruct2 struct {
