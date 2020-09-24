@@ -16,41 +16,114 @@ package compare
 
 import (
 	"testing"
+
+	"yunion.io/x/pkg/utils"
 )
 
-type StringA string
-
-type StringB string
-
-func (a StringA) GetExternalId() string {
-	return string(a)
+type LocalRes struct {
+	Name       string
+	ExternalId string
 }
 
-func (b StringB) GetGlobalId() string {
-	return string(b)
+func (r LocalRes) GetExternalId() string {
+	return r.ExternalId
 }
 
-func TestCompareSets(t *testing.T) {
-	arr1 := []StringA{
-		StringA("1"),
-		StringA("2"),
-		StringA("3"),
-		StringA("4"),
-		StringA("5"),
+type RemoteRes struct {
+	Name     string
+	GlobalId string
+}
+
+func (r RemoteRes) GetGlobalId() string {
+	return r.GlobalId
+}
+
+type TestData struct {
+	db      []LocalRes
+	remote  []RemoteRes
+	common  []string
+	removed []string
+	added   []string
+}
+
+func TestCompareSets2(t *testing.T) {
+	data := []TestData{
+		TestData{
+			db: []LocalRes{
+				LocalRes{Name: "1", ExternalId: "1"},
+				LocalRes{Name: "2", ExternalId: "2"},
+				LocalRes{Name: "3", ExternalId: "3"},
+				LocalRes{Name: "4", ExternalId: "4"},
+				LocalRes{Name: "5", ExternalId: "5"},
+			},
+			remote: []RemoteRes{
+				RemoteRes{Name: "2", GlobalId: "2"},
+				RemoteRes{Name: "4", GlobalId: "4"},
+				RemoteRes{Name: "6", GlobalId: "6"},
+			},
+			common:  []string{"2", "4"},
+			removed: []string{"1", "3", "5"},
+			added:   []string{"6"},
+		},
+		TestData{
+			db: []LocalRes{
+				LocalRes{Name: "1", ExternalId: ""},
+				LocalRes{Name: "2", ExternalId: "2"},
+				LocalRes{Name: "3", ExternalId: "3"},
+				LocalRes{Name: "4", ExternalId: "4"},
+				LocalRes{Name: "5", ExternalId: "5"},
+			},
+			remote: []RemoteRes{
+				RemoteRes{Name: "2", GlobalId: "2"},
+				RemoteRes{Name: "4", GlobalId: "4"},
+				RemoteRes{Name: "6", GlobalId: "6"},
+			},
+			common:  []string{"2", "4"},
+			removed: []string{"3", "5"},
+			added:   []string{"6"},
+		},
+		TestData{
+			db: []LocalRes{
+				LocalRes{Name: "1", ExternalId: ""},
+				LocalRes{Name: "2", ExternalId: "2"},
+				LocalRes{Name: "3", ExternalId: "3"},
+				LocalRes{Name: "4", ExternalId: "4"},
+				LocalRes{Name: "5", ExternalId: "5"},
+				LocalRes{Name: "7", ExternalId: ""},
+			},
+			remote: []RemoteRes{
+				RemoteRes{Name: "2", GlobalId: "2"},
+				RemoteRes{Name: "4", GlobalId: "4"},
+				RemoteRes{Name: "6", GlobalId: "6"},
+			},
+			common:  []string{"2", "4"},
+			removed: []string{"3", "5"},
+			added:   []string{"6"},
+		},
 	}
-	arr2 := []StringB{
-		StringB("2"),
-		StringB("4"),
-		StringB("6"),
-	}
-	removed := make([]StringA, 0)
-	commonA := make([]StringA, 0)
-	commonB := make([]StringB, 0)
-	added := make([]StringB, 0)
-	err := CompareSets(arr1, arr2, &removed, &commonA, &commonB, &added)
-	if err != nil {
-		t.Errorf("%s", err)
-	} else {
-		t.Logf("%s %s %s %s", removed, commonA, commonB, added)
+	for _, d := range data {
+		removed := []LocalRes{}
+		commondb := []LocalRes{}
+		commonext := []RemoteRes{}
+		added := []RemoteRes{}
+		err := CompareSets(d.db, d.remote, &removed, &commondb, &commonext, &added)
+		if err != nil {
+			t.Fatalf("%v", err)
+		}
+		for i := range removed {
+			if !utils.IsInStringArray(removed[i].Name, d.removed) {
+				t.Logf("%s should be remove", removed[i].Name)
+			}
+		}
+		for i := range commondb {
+			if !utils.IsInStringArray(commondb[i].Name, d.common) {
+				t.Logf("%s should be common", commondb[i].Name)
+			}
+		}
+		for i := range added {
+			if !utils.IsInStringArray(added[i].Name, d.added) {
+				t.Logf("%s should be added", added[i].Name)
+			}
+		}
 	}
 }
