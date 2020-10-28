@@ -433,6 +433,13 @@ func init() {
 }
 
 func updatePrivateIPRanges(prefs []string) {
+	if len(prefs) == 0 {
+		prefs = []string{
+			"10.0.0.0/8",
+			"172.16.0.0/12",
+			"192.168.0.0/16",
+		}
+	}
 	privateIPRanges = make([]IPV4AddrRange, len(prefs))
 	for i, prefix := range prefs {
 		prefix, err := NewIPV4Prefix(prefix)
@@ -444,13 +451,6 @@ func updatePrivateIPRanges(prefs []string) {
 }
 
 func SetPrivatePrefixes(pref []string) {
-	if len(pref) == 0 {
-		pref = []string{
-			"10.0.0.0/8",
-			"172.16.0.0/12",
-			"192.168.0.0/16",
-		}
-	}
 	updatePrivateIPRanges(pref)
 }
 
