@@ -422,13 +422,7 @@ var linkLocalIPRange IPV4AddrRange
 var multicastIPRange IPV4AddrRange
 
 func init() {
-	privatePrefixes := []string{
-		"10.0.0.0/8",
-		"172.16.0.0/12",
-		"192.168.0.0/16",
-	}
-
-	updatePrivateIPRanges(privatePrefixes)
+	updatePrivateIPRanges(nil)
 
 	prefix, _ := NewIPV4Prefix(hostlocalPrefix)
 	hostLocalIPRange = prefix.ToIPRange()
@@ -451,7 +445,11 @@ func updatePrivateIPRanges(prefs []string) {
 
 func SetPrivatePrefixes(pref []string) {
 	if len(pref) == 0 {
-		return
+		pref = []string{
+			"10.0.0.0/8",
+			"172.16.0.0/12",
+			"192.168.0.0/16",
+		}
 	}
 	updatePrivateIPRanges(pref)
 }
