@@ -17,6 +17,7 @@ package compare
 import (
 	"testing"
 
+	"yunion.io/x/pkg/errors"
 	"yunion.io/x/pkg/utils"
 )
 
@@ -126,4 +127,24 @@ func TestCompareSets2(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestCompareSetsDuplicate(t *testing.T) {
+	local := []LocalRes{
+		LocalRes{Name: "1", ExternalId: "1"},
+	}
+	remote := []RemoteRes{
+		RemoteRes{Name: "test-dup1", GlobalId: "2"},
+		RemoteRes{Name: "test-dup2", GlobalId: "2"},
+	}
+
+	removed := []LocalRes{}
+	commondb := []LocalRes{}
+	commonext := []RemoteRes{}
+	added := []RemoteRes{}
+	err := CompareSets(local, remote, &removed, &commondb, &commonext, &added)
+	if err == nil || errors.Cause(err) != errors.ErrDuplicateId {
+		t.Fatalf("should be %v error but is %v", errors.ErrDuplicateId, err)
+	}
+	t.Logf("test duplicate error: %v", err)
 }
