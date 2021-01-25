@@ -15,7 +15,6 @@
 package secrules
 
 import (
-	"sort"
 	"testing"
 
 	"yunion.io/x/pkg/util/netutils"
@@ -23,9 +22,7 @@ import (
 
 func TestSecRuleSet_AllowList(t *testing.T) {
 	dieIf := func(t *testing.T, srs0, srs1 SecurityRuleSet) {
-		sort.Sort(srs0)
-		sort.Sort(srs1)
-		if !srs0.equals(srs1) {
+		if !srs0.Equals(srs1) {
 			t.Fatalf("not equal:\n%s\n%s", srs0, srs1)
 		}
 	}

@@ -19,6 +19,8 @@ import (
 	"net"
 	"sort"
 
+	"gopkg.in/fatih/set.v0"
+
 	"yunion.io/x/pkg/util/netutils"
 )
 
@@ -59,21 +61,16 @@ func (srs SecurityRuleSet) String() string {
 }
 
 func (srs SecurityRuleSet) Equals(srs1 SecurityRuleSet) bool {
-	sort.Sort(srs)
-	sort.Sort(srs1)
-	return srs.equals(srs1)
-}
-
-func (srs SecurityRuleSet) equals(srs1 SecurityRuleSet) bool {
 	if len(srs) != len(srs1) {
 		return false
 	}
-	for i := range srs {
-		if !srs[i].equals(&srs1[i]) {
-			return false
-		}
+	s1 := set.New(set.ThreadSafe)
+	s2 := set.New(set.ThreadSafe)
+	for i := 0; i < len(srs); i++ {
+		s1.Add(srs[i].String())
+		s2.Add(srs1[i].String())
 	}
-	return true
+	return s1.IsEqual(s2)
 }
 
 // convert to pure allow list
