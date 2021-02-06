@@ -15,6 +15,7 @@
 package utils
 
 import (
+	"context"
 	"testing"
 	"time"
 )
@@ -26,7 +27,7 @@ func TestFibonacciRetrier(t *testing.T) {
 		fibr := NewFibonacciRetrierMaxTries(3, func(FibonacciRetrier) (bool, error) {
 			return false, nil
 		})
-		done, err := fibr.Start()
+		done, err := fibr.Start(context.Background())
 		if done {
 			t.Errorf("should never done")
 		}
@@ -48,7 +49,7 @@ func TestFibonacciRetrier(t *testing.T) {
 		fibr := NewFibonacciRetrierMaxElapse(5*time.Second, func(FibonacciRetrier) (bool, error) {
 			return false, nil
 		})
-		done, err := fibr.Start()
+		done, err := fibr.Start(context.Background())
 		if done {
 			t.Errorf("should never done")
 		}
@@ -69,6 +70,29 @@ func TestFibonacciRetrier(t *testing.T) {
 		gotElapsed2 := fibr.Elapsed()
 		if gotElapsed1 != gotElapsed2 {
 			t.Errorf("two calls to Elapsed() should return equal value %s != %s", gotElapsed1, gotElapsed2)
+		}
+	})
+
+	t.Run("ctx-done", func(t *testing.T) {
+		fibr := NewFibonacciRetrierMaxElapse(time.Hour, func(FibonacciRetrier) (bool, error) {
+			return false, nil
+		})
+		ctx := context.Background()
+		ctx, _ = context.WithTimeout(ctx, time.Duration(0))
+
+		doneC := make(chan int)
+		go func() {
+			wait := time.NewTimer(time.Second)
+			select {
+			case <-wait.C:
+				t.Fatalf("1s passed but not done yet")
+			case <-doneC:
+			}
+		}()
+		fibr.Start(ctx)
+		close(doneC)
+		if fibr.Elapsed() > time.Millisecond {
+			t.Errorf("should return immediately")
 		}
 	})
 }
