@@ -98,6 +98,10 @@ func TestTimeUtils(t *testing.T) {
 			in:   "2019-11-19T18:54:48.084-08:00",
 			want: wantParse("2019-11-19 18:54:48.084 -0800 -08"),
 		},
+		{
+			in:   "2021-10-23 02:52:24.1411282+00:00",
+			want: wantParse("2021-10-23 02:52:24.1411282 +0000 UTC"),
+		},
 	}
 	for _, c := range cases {
 		tm, err := ParseTimeStr(c.in)
