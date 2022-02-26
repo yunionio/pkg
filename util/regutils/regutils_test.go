@@ -87,6 +87,7 @@ func TestRegexp(t *testing.T) {
 		{"2019-09-17 02:52:26.095915-08:00", "MatchFullIsoTime2", MatchFullISOTime2, true},
 		{"2019-09-17 02:52-08:00", "MatchISONoSecondTime2", MatchISONoSecondTime2, true},
 		{"2019-09-17T02:52-08:00", "MatchISONoSecondTime", MatchISONoSecondTime, true},
+		{"12-31-22", "MatchDateExcel", MatchDateExcel, true},
 	}
 	for _, c := range cases {
 		got := c.regfunc(c.in)

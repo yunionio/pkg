@@ -30,6 +30,7 @@ func TestTimeUtils(t *testing.T) {
 	t.Logf("example: CompactTime: %s", CompactTime(tm))
 	t.Logf("example: ShortDate: %s", ShortDate(tm))
 	t.Logf("example: Date: %s", DateStr(tm))
+	t.Logf("example: Date Excel: %s", DateExcelStr(tm))
 	t.Logf("example: RFC2882: %s", RFC2882Time(tm))
 	t.Logf("example: ZStack: %s", ZStackTime(tmLocal))
 	t.Logf("example: FullIsoNanoTime: %s", FullIsoNanoTime(tmLocal))
