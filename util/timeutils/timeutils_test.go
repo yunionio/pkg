@@ -27,6 +27,7 @@ func TestTimeUtils(t *testing.T) {
 	t.Logf("example: isoNoSecondTime: %s", IsoNoSecondTime(time.Time{}))
 	t.Logf("example: FullIsoTime: %s", FullIsoTime(tm))
 	t.Logf("example: mysqlTime: %s", MysqlTime(tm))
+	t.Logf("example: clickhouseTime: %s", ClickhouseTime(tm))
 	t.Logf("example: CompactTime: %s", CompactTime(tm))
 	t.Logf("example: ShortDate: %s", ShortDate(tm))
 	t.Logf("example: Date: %s", DateStr(tm))
@@ -35,36 +36,21 @@ func TestTimeUtils(t *testing.T) {
 	t.Logf("example: ZStack: %s", ZStackTime(tmLocal))
 	t.Logf("example: FullIsoNanoTime: %s", FullIsoNanoTime(tmLocal))
 
-	tm2, err := ParseTimeStr(IsoTime(tm))
-	if err != nil {
-		t.Errorf("Parse time str error: %s", err)
-	}
-	tm3, err := ParseTimeStr(MysqlTime(tm))
-	if err != nil {
-		t.Errorf("Parse time str error: %s", err)
-	}
-	tm4, err := ParseTimeStr(CompactTime(tm))
-	if err != nil {
-		t.Errorf("Parse time str error: %s", err)
-	}
-	tm5, err := ParseTimeStr(ZStackTime(tmLocal))
-	if err != nil {
-		t.Errorf("Parse time str error: %s", err)
-	}
-	tm6, err := ParseTimeStr(FullIsoNanoTime(tmLocal))
-	if err != nil {
-		t.Errorf("Parse time str error: %s", err)
-	}
-
-	if tm2 != tm3 || tm2 != tm4 {
-		t.Errorf("Parse Iso time error! %s %s", tm, tm2)
-	}
-
-	if tmLocal.Sub(tm5) > 1*time.Second {
-		t.Errorf("Parse ZStack time error! %s %s %s", tmLocal, tm5, tmLocal.Sub(tm5))
-	}
-	if tmLocal.Sub(tm6) > 1*time.Second {
-		t.Errorf("Parse ZStack time error! %s %s %s", tmLocal, tm5, tmLocal.Sub(tm6))
+	for _, tmf := range []func(time.Time) string{
+		IsoTime,
+		MysqlTime,
+		ClickhouseTime,
+		CompactTime,
+		ZStackTime,
+		FullIsoNanoTime,
+	} {
+		tm2, err := ParseTimeStr(tmf(tm))
+		if err != nil {
+			t.Errorf("Parse time str error: %s", err)
+		}
+		if tmLocal.Sub(tm2) > 1*time.Second {
+			t.Errorf("Parse ZStack time error! %s %s %s", tmLocal, tm2, tmLocal.Sub(tm2))
+		}
 	}
 
 	wantParse := func(s string) time.Time {
