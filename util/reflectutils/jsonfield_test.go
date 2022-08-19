@@ -393,3 +393,65 @@ func TestExpandAmbiguousPrefix(t *testing.T) {
 		}
 	}
 }
+
+func TestEmbededStructPtr(t *testing.T) {
+	type Embeded0 struct {
+		Field0 string `json:"field0"`
+	}
+
+	type Embeded1 struct {
+		Field1 string `json:"field1"`
+	}
+
+	type Embeded2 struct {
+		Embeded0
+		*Embeded1
+
+		Field2 string `json:"field2"`
+		Field3 string `json:"field3"`
+	}
+
+	type Struct1 struct {
+		*Embeded2
+
+		Name string `json:"name"`
+	}
+
+	type Struct2 struct {
+		Embeded2
+
+		Name string `json:"name"`
+	}
+
+	cases := []struct {
+		Object interface{}
+		Want   map[string][]int
+	}{
+		{
+			Struct1{},
+			map[string][]int{
+				"field0": []int{0},
+				"field1": []int{1},
+				"field2": []int{2},
+				"field3": []int{3},
+				"name":   []int{4},
+			},
+		},
+		{
+			Struct2{},
+			map[string][]int{
+				"field0": []int{0},
+				"field1": []int{1},
+				"field2": []int{2},
+				"field3": []int{3},
+				"name":   []int{4},
+			},
+		},
+	}
+	for _, c := range cases {
+		set := FetchStructFieldValueSet(reflect.ValueOf(c.Object))
+		if !reflect.DeepEqual(set.GetStructFieldIndexesMap(), c.Want) {
+			t.Errorf("Got: %v Want: %v", set.GetStructFieldIndexesMap(), c.Want)
+		}
+	}
+}
