@@ -12,35 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package seclib
+package fileutils
 
-import (
-	"math/rand"
-	"testing"
-	"time"
-)
+import "os"
 
-func TestRandomPassword(t *testing.T) {
-	t.Logf("%s", RandomPassword(12))
+func IsFile(filepath string) bool {
+	fi, err := os.Lstat(filepath)
+	if err != nil {
+		return false
+	}
+	mode := fi.Mode()
+	return mode.IsRegular()
 }
 
-func TestRandomPassword2(t *testing.T) {
-	rand.Seed(time.Now().Unix())
-	t.Logf("%s", RandomPassword2(12))
-}
-
-func TestMeetComplxity(t *testing.T) {
-	cases := []struct {
-		in   string
-		want bool
-	}{
-		{"123456", false},
-		{"123abcABC!@#", true},
-		{"123abcABC-@=", true},
+func IsDir(filepath string) bool {
+	fi, err := os.Lstat(filepath)
+	if err != nil {
+		return false
 	}
-	for _, c := range cases {
-		if c.want != MeetComplxity(c.in) {
-			t.Errorf("%s != %v", c.in, c.want)
-		}
-	}
+	mode := fi.Mode()
+	return mode.IsDir()
 }

@@ -12,35 +12,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package seclib
+package pinyinutils
 
 import (
-	"math/rand"
 	"testing"
-	"time"
 )
 
-func TestRandomPassword(t *testing.T) {
-	t.Logf("%s", RandomPassword(12))
-}
-
-func TestRandomPassword2(t *testing.T) {
-	rand.Seed(time.Now().Unix())
-	t.Logf("%s", RandomPassword2(12))
-}
-
-func TestMeetComplxity(t *testing.T) {
+func TestPinyin(t *testing.T) {
 	cases := []struct {
-		in   string
-		want bool
+		In   string
+		Want string
 	}{
-		{"123456", false},
-		{"123abcABC!@#", true},
-		{"123abcABC-@=", true},
+		{"中国人", "zhongguoren"},
+		{"中国人1", "zhongguoren1"},
+		{"中 国 人", "zhong guo ren"},
 	}
 	for _, c := range cases {
-		if c.want != MeetComplxity(c.in) {
-			t.Errorf("%s != %v", c.in, c.want)
+		got := Text2Pinyin(c.In)
+		if got != c.Want {
+			t.Errorf("Text2Pinyin %s got: %s want %s", c.In, got, c.Want)
 		}
 	}
 }

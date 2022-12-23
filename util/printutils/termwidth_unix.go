@@ -1,5 +1,6 @@
 // Copyright 2019 Yunion
-//
+// Copyright 2019 Yunion
+
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -12,35 +13,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package seclib
+//go:build !windows
+// +build !windows
+
+package printutils
 
 import (
-	"math/rand"
-	"testing"
-	"time"
+	"os"
+
+	"golang.org/x/sys/unix"
 )
 
-func TestRandomPassword(t *testing.T) {
-	t.Logf("%s", RandomPassword(12))
-}
-
-func TestRandomPassword2(t *testing.T) {
-	rand.Seed(time.Now().Unix())
-	t.Logf("%s", RandomPassword2(12))
-}
-
-func TestMeetComplxity(t *testing.T) {
-	cases := []struct {
-		in   string
-		want bool
-	}{
-		{"123456", false},
-		{"123abcABC!@#", true},
-		{"123abcABC-@=", true},
+func termWidth() (int, error) {
+	fd := int(os.Stdout.Fd())
+	wsz, err := unix.IoctlGetWinsize(fd, unix.TIOCGWINSZ)
+	if err != nil {
+		return -1, err
 	}
-	for _, c := range cases {
-		if c.want != MeetComplxity(c.in) {
-			t.Errorf("%s != %v", c.in, c.want)
-		}
-	}
+	return int(wsz.Col), nil
 }

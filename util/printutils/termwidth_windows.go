@@ -12,35 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package seclib
+//go:build windows
+// +build windows
+
+package printutils
 
 import (
-	"math/rand"
-	"testing"
-	"time"
+	"os"
+
+	"golang.org/x/sys/windows"
 )
 
-func TestRandomPassword(t *testing.T) {
-	t.Logf("%s", RandomPassword(12))
-}
-
-func TestRandomPassword2(t *testing.T) {
-	rand.Seed(time.Now().Unix())
-	t.Logf("%s", RandomPassword2(12))
-}
-
-func TestMeetComplxity(t *testing.T) {
-	cases := []struct {
-		in   string
-		want bool
-	}{
-		{"123456", false},
-		{"123abcABC!@#", true},
-		{"123abcABC-@=", true},
+func termWidth() (int, error) {
+	var (
+		h    = windows.Handle(os.Stdout.Fd())
+		info windows.ConsoleScreenBufferInfo
+	)
+	if err := windows.GetConsoleScreenBufferInfo(h, &info); err != nil {
+		return -1, err
 	}
-	for _, c := range cases {
-		if c.want != MeetComplxity(c.in) {
-			t.Errorf("%s != %v", c.in, c.want)
-		}
-	}
+	return int(info.Size.X), nil
 }

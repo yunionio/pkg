@@ -12,35 +12,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package seclib
+package printutils
 
 import (
-	"math/rand"
-	"testing"
-	"time"
+	"yunion.io/x/jsonutils"
 )
 
-func TestRandomPassword(t *testing.T) {
-	t.Logf("%s", RandomPassword(12))
+type ListResult struct {
+	Data   []jsonutils.JSONObject `json:"data,allowempty"`
+	Total  int
+	Limit  int
+	Offset int
+
+	NextMarker  string
+	MarkerField string
+	MarkerOrder string
 }
 
-func TestRandomPassword2(t *testing.T) {
-	rand.Seed(time.Now().Unix())
-	t.Logf("%s", RandomPassword2(12))
-}
-
-func TestMeetComplxity(t *testing.T) {
-	cases := []struct {
-		in   string
-		want bool
-	}{
-		{"123456", false},
-		{"123abcABC!@#", true},
-		{"123abcABC-@=", true},
-	}
-	for _, c := range cases {
-		if c.want != MeetComplxity(c.in) {
-			t.Errorf("%s != %v", c.in, c.want)
-		}
-	}
+type SubmitResult struct {
+	Status int
+	Id     interface{}
+	Data   jsonutils.JSONObject
 }

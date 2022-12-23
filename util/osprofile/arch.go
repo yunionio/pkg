@@ -12,35 +12,40 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package seclib
+package osprofile
 
 import (
-	"math/rand"
-	"testing"
-	"time"
+	"yunion.io/x/pkg/utils"
 )
 
-func TestRandomPassword(t *testing.T) {
-	t.Logf("%s", RandomPassword(12))
-}
+const (
+	OS_ARCH_X86 = "x86"
+	OS_ARCH_ARM = "arm"
 
-func TestRandomPassword2(t *testing.T) {
-	rand.Seed(time.Now().Unix())
-	t.Logf("%s", RandomPassword2(12))
-}
+	OS_ARCH_I386    = "i386"
+	OS_ARCH_X86_32  = "x86_32"
+	OS_ARCH_X86_64  = "x86_64"
+	OS_ARCH_AARCH32 = "aarch32"
+	OS_ARCH_AARCH64 = "aarch64"
 
-func TestMeetComplxity(t *testing.T) {
-	cases := []struct {
-		in   string
-		want bool
-	}{
-		{"123456", false},
-		{"123abcABC!@#", true},
-		{"123abcABC-@=", true},
+	OS_BOOT_BIOS = "BIOS"
+	OS_BOOT_UEFI = "UEFI"
+)
+
+var (
+	ARCH_X86 = []string{
+		OS_ARCH_X86,
+		OS_ARCH_I386,
+		OS_ARCH_X86_32,
+		OS_ARCH_X86_64,
 	}
-	for _, c := range cases {
-		if c.want != MeetComplxity(c.in) {
-			t.Errorf("%s != %v", c.in, c.want)
-		}
+	ARCH_ARM = []string{
+		OS_ARCH_ARM,
+		OS_ARCH_AARCH32,
+		OS_ARCH_AARCH64,
 	}
+)
+
+func IsARM(osArch string) bool {
+	return utils.IsInStringArray(osArch, ARCH_ARM)
 }
