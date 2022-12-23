@@ -12,35 +12,4 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package seclib
-
-import (
-	"math/rand"
-	"testing"
-	"time"
-)
-
-func TestRandomPassword(t *testing.T) {
-	t.Logf("%s", RandomPassword(12))
-}
-
-func TestRandomPassword2(t *testing.T) {
-	rand.Seed(time.Now().Unix())
-	t.Logf("%s", RandomPassword2(12))
-}
-
-func TestMeetComplxity(t *testing.T) {
-	cases := []struct {
-		in   string
-		want bool
-	}{
-		{"123456", false},
-		{"123abcABC!@#", true},
-		{"123abcABC-@=", true},
-	}
-	for _, c := range cases {
-		if c.want != MeetComplxity(c.in) {
-			t.Errorf("%s != %v", c.in, c.want)
-		}
-	}
-}
+package encode // import "yunion.io/x/pkg/util/encode"
