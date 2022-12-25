@@ -14,13 +14,9 @@
 
 package rbacscope
 
-type TRbacResult string
 type TRbacScope string
 
 const (
-	Allow = TRbacResult("allow")
-	Deny  = TRbacResult("deny")
-
 	ScopeSystem  = TRbacScope("system")
 	ScopeDomain  = TRbacScope("domain")
 	ScopeProject = TRbacScope("project")
