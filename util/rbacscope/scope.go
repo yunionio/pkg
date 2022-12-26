@@ -14,6 +14,10 @@
 
 package rbacscope
 
+import (
+	"strings"
+)
+
 type TRbacScope string
 
 const (
@@ -24,3 +28,42 @@ const (
 	ScopeUser = TRbacScope("user")
 	ScopeNone = TRbacScope("none")
 )
+
+var (
+	scopeScore = map[TRbacScope]int{
+		ScopeNone:    0,
+		ScopeUser:    1,
+		ScopeProject: 2,
+		ScopeDomain:  3,
+		ScopeSystem:  4,
+	}
+)
+
+func (s1 TRbacScope) HigherEqual(s2 TRbacScope) bool {
+	return scopeScore[s1] >= scopeScore[s2]
+}
+
+func (s1 TRbacScope) HigherThan(s2 TRbacScope) bool {
+	return scopeScore[s1] > scopeScore[s2]
+}
+
+func String2Scope(str string) TRbacScope {
+	return String2ScopeDefault(str, ScopeProject)
+}
+
+func String2ScopeDefault(str string, defScope TRbacScope) TRbacScope {
+	switch strings.ToLower(str) {
+	case string(ScopeSystem):
+		return ScopeSystem
+	case string(ScopeDomain):
+		return ScopeDomain
+	case string(ScopeProject):
+		return ScopeProject
+	case string(ScopeUser):
+		return ScopeUser
+	case "true":
+		return ScopeSystem
+	default:
+		return defScope
+	}
+}
