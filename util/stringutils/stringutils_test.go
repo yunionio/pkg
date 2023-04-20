@@ -123,3 +123,43 @@ func TestSplitKeyValueBySep(t *testing.T) {
 		})
 	}
 }
+
+func TestContainsWord(t *testing.T) {
+	cases := []struct {
+		str  string
+		word string
+		want bool
+	}{
+		{
+			str:  "account_id",
+			word: "account",
+			want: false,
+		},
+		{
+			str:  "account_id",
+			word: "account_id",
+			want: true,
+		},
+		{
+			str:  "(toYear(usage_start_time)*100)+toMonth(usage_start_time)",
+			word: "usage_start_time",
+			want: true,
+		},
+		{
+			str:  "(toYear(usage_start_time)*100)+toMonth(usage_start_time)",
+			word: "usage_start",
+			want: false,
+		},
+		{
+			str:  "(toYear(usage_start_time)*100)+toMonth(usage_start_time)",
+			word: "(usage_start_time)",
+			want: true,
+		},
+	}
+	for _, c := range cases {
+		got := ContainsWord(c.str, c.word)
+		if got != c.want {
+			t.Errorf("str %s contains word %s got %v want %v", c.str, c.word, got, c.want)
+		}
+	}
+}

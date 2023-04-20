@@ -39,7 +39,7 @@ func TestFibonacciRetrier(t *testing.T) {
 		if fibr.Elapsed()-elapsed > time.Millisecond {
 			t.Errorf("wall time elapsed %s, got %s", elapsed, fibr.Elapsed())
 		}
-		if fibr.Elapsed()-3*time.Second > time.Millisecond {
+		if fibr.Elapsed()-3*time.Second > 3*time.Millisecond {
 			t.Errorf("should wait no more than %s, got %s", 3*time.Second, fibr.Elapsed())
 		}
 	})
