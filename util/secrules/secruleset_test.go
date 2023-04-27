@@ -29,6 +29,15 @@ func TestSecRuleSet_AllowList(t *testing.T) {
 			t.Fatalf("not equal:\n%s\n%s", srs0, srs1)
 		}
 	}
+	dieIfNotEquals := func(t *testing.T, srs0, srs1 SecurityRuleSet) {
+		sr0 := srs0.AllowList()
+		sr1 := srs1.AllowList()
+		sort.Sort(sr0)
+		sort.Sort(sr1)
+		if !sr0.equals(sr1) {
+			t.Fatalf("not equal:\n%s\n%s", sr0, sr1)
+		}
+	}
 	t.Run("empty", func(t *testing.T) {
 		srs0 := SecurityRuleSet{}
 		srs1 := srs0.AllowList()
@@ -214,5 +223,96 @@ func TestSecRuleSet_AllowList(t *testing.T) {
 			*MustParseSecurityRule("out:allow udp"),
 		}
 		dieIf(t, srs1, srs1_)
+	})
+	t.Run("udp: port", func(t *testing.T) {
+		srs0 := SecurityRuleSet{
+			*MustParseSecurityRule("out:deny tcp 44,53"),
+			*MustParseSecurityRule("out:deny tcp 53"),
+			*MustParseSecurityRule("out:allow tcp 22"),
+			*MustParseSecurityRule("out:allow any"),
+		}
+		srs1 := srs0.AllowList()
+		srs1_ := SecurityRuleSet{
+			*MustParseSecurityRule("out:allow icmp"),
+			*MustParseSecurityRule("out:allow tcp 1-43"),
+			*MustParseSecurityRule("out:allow tcp 22"),
+			*MustParseSecurityRule("out:allow tcp 45-52"),
+			*MustParseSecurityRule("out:allow tcp 54-65535"),
+			*MustParseSecurityRule("out:allow udp"),
+		}
+		dieIf(t, srs1, srs1_)
+	})
+	t.Run("duplicate: icmp", func(t *testing.T) {
+		srs0 := SecurityRuleSet{
+			*MustParseSecurityRule("out:deny tcp 44,53"),
+			*MustParseSecurityRule("out:deny tcp 53"),
+			*MustParseSecurityRule("out:allow tcp 22"),
+			*MustParseSecurityRule("out:allow any"),
+			*MustParseSecurityRule("out:allow any"),
+		}
+		srs1 := srs0.AllowList()
+		srs1_ := SecurityRuleSet{
+			*MustParseSecurityRule("out:allow icmp"),
+			*MustParseSecurityRule("out:allow tcp 1-43"),
+			*MustParseSecurityRule("out:allow tcp 22"),
+			*MustParseSecurityRule("out:allow tcp 45-52"),
+			*MustParseSecurityRule("out:allow tcp 54-65535"),
+			*MustParseSecurityRule("out:allow udp"),
+		}
+		dieIf(t, srs1, srs1_)
+	})
+
+	t.Run("duplicate: udp", func(t *testing.T) {
+		srs0 := SecurityRuleSet{
+			*MustParseSecurityRule("out:deny tcp 44,53"),
+			*MustParseSecurityRule("out:deny tcp 53"),
+			*MustParseSecurityRule("out:allow tcp 22"),
+			*MustParseSecurityRule("out:allow any"),
+			*MustParseSecurityRule("out:allow udp"),
+		}
+		srs1 := srs0.AllowList()
+		srs1_ := SecurityRuleSet{
+			*MustParseSecurityRule("out:allow icmp"),
+			*MustParseSecurityRule("out:allow tcp 1-43"),
+			*MustParseSecurityRule("out:allow tcp 22"),
+			*MustParseSecurityRule("out:allow tcp 45-52"),
+			*MustParseSecurityRule("out:allow tcp 54-65535"),
+			*MustParseSecurityRule("out:allow udp"),
+		}
+		dieIf(t, srs1, srs1_)
+	})
+
+	t.Run("merge: port", func(t *testing.T) {
+		srs0 := SecurityRuleSet{
+			*MustParseSecurityRule("in:allow tcp 22"),
+			*MustParseSecurityRule("in:allow tcp 3306"),
+			*MustParseSecurityRule("in:allow tcp 5432"),
+			*MustParseSecurityRule("in:allow tcp 1433"),
+			*MustParseSecurityRule("in:allow tcp 1521"),
+			*MustParseSecurityRule("in:allow tcp 443"),
+			*MustParseSecurityRule("in:deny tcp 80"),
+			*MustParseSecurityRule("in:allow 192.168.0.0/16 udp 40-90"),
+		}
+		srs1 := srs0.AllowList()
+		srs1_ := SecurityRuleSet{
+			*MustParseSecurityRule("in:allow tcp 22,443,1433,1521,3306,5432"),
+			*MustParseSecurityRule("in:allow 192.168.0.0/16 udp 40-90"),
+		}
+		dieIf(t, srs1, srs1_)
+	})
+	t.Run("allow: priority", func(t *testing.T) {
+		srs0 := SecurityRuleSet{
+			*MustParseSecurityRule("out:deny tcp 53"),
+			*MustParseSecurityRule("out:deny tcp 44"),
+			*MustParseSecurityRule("out:allow any"),
+			*MustParseSecurityRule("out:allow 172.16.0.0/12 tcp 22"),
+		}
+		srs1 := SecurityRuleSet{
+			*MustParseSecurityRule("out:deny tcp 53"),
+			*MustParseSecurityRule("out:deny tcp 44"),
+			*MustParseSecurityRule("out:allow 172.16.0.0/12 tcp 22"),
+			*MustParseSecurityRule("out:allow any"),
+		}
+		dieIfNotEquals(t, srs0, srs1)
 	})
 }
