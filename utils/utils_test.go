@@ -193,3 +193,28 @@ func BenchmarkCamelSplitTokens(b *testing.B) {
 		})
 	}
 }
+
+func TestInArray(t *testing.T) {
+	cases := []struct {
+		needle int
+		array  []int
+		want   bool
+	}{
+		{
+			needle: 2,
+			array:  []int{1, 2},
+			want:   true,
+		},
+		{
+			needle: 3,
+			array:  []int{1, 2},
+			want:   false,
+		},
+	}
+	for _, c := range cases {
+		got := IsInArray(c.needle, c.array)
+		if got != c.want {
+			t.Errorf("got: %v want %v", got, c.want)
+		}
+	}
+}
