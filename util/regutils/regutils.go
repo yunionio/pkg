@@ -42,6 +42,7 @@ var FULLISO_TIME_REG *regexp.Regexp
 var ISO_TIME_REG2 *regexp.Regexp
 var ISO_NO_SECOND_TIME_REG2 *regexp.Regexp
 var FULLISO_TIME_REG2 *regexp.Regexp
+var FULLISO_TIME_REG3 *regexp.Regexp
 var ZSTACK_TIME_REG *regexp.Regexp
 var COMPACT_TIME_REG *regexp.Regexp
 var MYSQL_TIME_REG *regexp.Regexp
@@ -76,7 +77,8 @@ func init() {
 	FULLISO_TIME_REG = regexp.MustCompile(`^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3,9}(Z|[+-]\d{2}:\d{2})$`)
 	ISO_TIME_REG2 = regexp.MustCompile(`^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(Z|[+-]\d{2}:\d{2})$`)
 	ISO_NO_SECOND_TIME_REG2 = regexp.MustCompile(`^\d{4}-\d{2}-\d{2} \d{2}:\d{2}(Z|[+-]\d{2}:\d{2})$`)
-	FULLISO_TIME_REG2 = regexp.MustCompile(`^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3,9}(Z|[+-]\d{2}:\d{2})?$`)
+	FULLISO_TIME_REG2 = regexp.MustCompile(`^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3,9}(Z|[+-]\d{2}:\d{2})$`)
+	FULLISO_TIME_REG3 = regexp.MustCompile(`^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3,9}$`)
 	COMPACT_TIME_REG = regexp.MustCompile(`^\d{14}$`)
 	ZSTACK_TIME_REG = regexp.MustCompile(`^\w+ \d{1,2}, \d{4} \d{1,2}:\d{1,2}:\d{1,2} (AM|PM)$`) //ZStack time format "Apr 1, 2019 3:23:17 PM"
 	MYSQL_TIME_REG = regexp.MustCompile(`^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$`)
@@ -226,6 +228,10 @@ func MatchISONoSecondTime2(str string) bool {
 
 func MatchFullISOTime2(str string) bool {
 	return FULLISO_TIME_REG2.MatchString(str)
+}
+
+func MatchFullISOTime3(str string) bool {
+	return FULLISO_TIME_REG3.MatchString(str)
 }
 
 func MatchCompactTime(str string) bool {
