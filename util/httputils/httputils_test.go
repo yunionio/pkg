@@ -151,7 +151,7 @@ func TestErrorCause(t *testing.T) {
 type ResponseHeaderTimeoutHandler struct{}
 
 func (h *ResponseHeaderTimeoutHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	time.Sleep(time.Duration(ResponseHeaderTimeout+2) * time.Second)
+	time.Sleep(time.Duration(ResponseHeaderTimeoutSeconds+2) * time.Second)
 	w.Write([]byte("hello"))
 }
 
