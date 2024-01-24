@@ -14,7 +14,12 @@
 
 package netutils
 
-import "testing"
+import (
+	"strings"
+	"testing"
+
+	"yunion.io/x/jsonutils"
+)
 
 func TestNewIPV6Addr(t *testing.T) {
 	cases := []struct {
@@ -437,6 +442,250 @@ func TestDeriveIPv6Addr(t *testing.T) {
 		got := DeriveIPv6AddrFromIPv4AddrMac(c.ipAddr, c.macAddr, c.startIp6, c.endIp6, c.maskLen6)
 		if got != c.want {
 			t.Errorf("DeriveIPv6AddrFromIPv4AddrMac %s %s %s %s %d want %s got %s", c.ipAddr, c.macAddr, c.startIp6, c.endIp6, c.maskLen6, c.want, got)
+		}
+	}
+}
+
+func TestPrefixV62Range(t *testing.T) {
+	cases := []struct {
+		prefix   string
+		rangeStr string
+	}{
+		{
+			prefix:   "::/0",
+			rangeStr: "::-ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff",
+		},
+		{
+			prefix:   "fd:3ffe:3200:2::/64",
+			rangeStr: "fd:3ffe:3200:2::-fd:3ffe:3200:2:ffff:ffff:ffff:ffff",
+		},
+		{
+			prefix:   "fd:3ffe:3200:2::/120",
+			rangeStr: "fd:3ffe:3200:2::-fd:3ffe:3200:2::ff",
+		},
+	}
+	for _, c := range cases {
+		pref, err := NewIPV6Prefix(c.prefix)
+		if err != nil {
+			t.Errorf("prefix %s fail %s", c.prefix, err)
+		} else {
+			ipRange := pref.ToIPRange()
+			if ipRange.String() != c.rangeStr {
+				t.Errorf("prefix %s to range got %s want %s", pref.String(), ipRange.String(), c.rangeStr)
+			}
+		}
+	}
+}
+
+func TestV6RangeToPrefix(t *testing.T) {
+	cases := []struct {
+		start    string
+		end      string
+		prefixes []string
+	}{
+		{
+			start: "fd:3ffe:3200:2::0",
+			end:   "fd:3ffe:3200:2::ff",
+			prefixes: []string{
+				"fd:3ffe:3200:2::/120",
+			},
+		},
+		{
+			start: "fd:3ffe:3200:2::0",
+			end:   "fd:3ffe:3200:2::80",
+			prefixes: []string{
+				"fd:3ffe:3200:2::/121",
+				"fd:3ffe:3200:2::80/128",
+			},
+		},
+		{
+			start: "fd:3ffe:3200:2::80",
+			end:   "fd:3ffe:3200:2::ff",
+			prefixes: []string{
+				"fd:3ffe:3200:2::80/121",
+			},
+		},
+		{
+			start: "fd:3ffe:3200:2::7f",
+			end:   "fd:3ffe:3200:2::ff",
+			prefixes: []string{
+				"fd:3ffe:3200:2::7f/128",
+				"fd:3ffe:3200:2::80/121",
+			},
+		},
+		{
+			start: "fd:3ffe:3200:2::7e",
+			end:   "fd:3ffe:3200:2::ff",
+			prefixes: []string{
+				"fd:3ffe:3200:2::7e/127",
+				"fd:3ffe:3200:2::80/121",
+			},
+		},
+		{
+			start: "fd:3ffe:3200:2::7d",
+			end:   "fd:3ffe:3200:2::ff",
+			prefixes: []string{
+				"fd:3ffe:3200:2::7d/128",
+				"fd:3ffe:3200:2::7e/127",
+				"fd:3ffe:3200:2::80/121",
+			},
+		},
+		{
+			start: "::",
+			end:   "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff",
+			prefixes: []string{
+				"::/0",
+			},
+		},
+	}
+	for _, c := range cases {
+		startIp, err := NewIPV6Addr(c.start)
+		if err != nil {
+			t.Errorf("NewIPV6Addr %s fail %s", c.start, err)
+		} else {
+			endIp, err := NewIPV6Addr(c.end)
+			if err != nil {
+				t.Errorf("NewIPV6Addr %s fail %s", c.end, err)
+			} else {
+				v6Range := NewIPV6AddrRange(startIp, endIp)
+				prefixes := v6Range.ToIPNets()
+				prefStr := make([]string, 0, len(prefixes))
+				for i := range prefixes {
+					prefStr = append(prefStr, prefixes[i].String())
+				}
+				if jsonutils.Marshal(prefStr).String() != jsonutils.Marshal(c.prefixes).String() {
+					t.Errorf("expect %s got %s", jsonutils.Marshal(c.prefixes).String(), jsonutils.Marshal(prefStr).String())
+				}
+			}
+		}
+	}
+}
+
+func TestIPV6Substract(t *testing.T) {
+	cases := []struct {
+		start1 string
+		end1   string
+		start2 string
+		end2   string
+		lefts  []string
+		sub    string
+	}{
+		{
+			start1: "fd:3ffe:3200:2::1",
+			end1:   "fd:3ffe:3200:2::ff",
+			start2: "fd:3ffe:3200:2::80",
+			end2:   "fd:3ffe:3200:2::100",
+			lefts: []string{
+				"fd:3ffe:3200:2::1-fd:3ffe:3200:2::7f",
+			},
+			sub: "fd:3ffe:3200:2::80-fd:3ffe:3200:2::ff",
+		},
+		{
+			start1: "fd:3ffe:3200:2::1",
+			end1:   "fd:3ffe:3200:2::ff",
+			start2: "fd:3ffe:3200:2::80",
+			end2:   "fd:3ffe:3200:2::8f",
+			lefts: []string{
+				"fd:3ffe:3200:2::1-fd:3ffe:3200:2::7f",
+				"fd:3ffe:3200:2::90-fd:3ffe:3200:2::ff",
+			},
+			sub: "fd:3ffe:3200:2::80-fd:3ffe:3200:2::8f",
+		},
+		{
+			start1: "fd:3ffe:3200:2::80",
+			end1:   "fd:3ffe:3200:2::ff",
+			start2: "fd:3ffe:3200:2::1",
+			end2:   "fd:3ffe:3200:2::8f",
+			lefts: []string{
+				"fd:3ffe:3200:2::90-fd:3ffe:3200:2::ff",
+			},
+			sub: "fd:3ffe:3200:2::80-fd:3ffe:3200:2::8f",
+		},
+		{
+			start1: "fd:3ffe:3200:2::1",
+			end1:   "fd:3ffe:3200:2::7f",
+			start2: "fd:3ffe:3200:2::80",
+			end2:   "fd:3ffe:3200:2::ff",
+			lefts: []string{
+				"fd:3ffe:3200:2::1-fd:3ffe:3200:2::7f",
+			},
+			sub: "",
+		},
+	}
+	for _, c := range cases {
+		start1, _ := NewIPV6Addr(c.start1)
+		end1, _ := NewIPV6Addr(c.end1)
+		start2, _ := NewIPV6Addr(c.start2)
+		end2, _ := NewIPV6Addr(c.end2)
+		range1 := NewIPV6AddrRange(start1, end1)
+		range2 := NewIPV6AddrRange(start2, end2)
+		lefts, sub := range1.Substract(range2)
+		leftStrs := make([]string, len(lefts))
+		for i := range lefts {
+			leftStrs[i] = lefts[i].String()
+		}
+		if jsonutils.Marshal(leftStrs).String() != jsonutils.Marshal(c.lefts).String() {
+			t.Errorf("%s substrct %s expect lefts %s got %s", range1.String(), range2.String(), jsonutils.Marshal(c.lefts).String(), jsonutils.Marshal(leftStrs).String())
+		} else {
+			if sub == nil {
+				if c.sub != "" {
+					t.Errorf("%s substrct %s expect empty sub got %s", range1.String(), range2.String(), c.sub)
+				}
+			} else if sub.String() != c.sub {
+				t.Errorf("%s substrct %s expect sub %s got %s", range1.String(), range2.String(), sub.String(), c.sub)
+			}
+		}
+	}
+}
+
+func TestV6RangeListMerge(t *testing.T) {
+	cases := []struct {
+		ranges []string
+		wants  []string
+	}{
+		{
+			ranges: []string{
+				"fd:3ffe:3200:2::1-fd:3ffe:3200:2::ff",
+				"fd:3ffe:3200:2::ff-fd:3ffe:3200:2::ffff",
+			},
+			wants: []string{
+				"fd:3ffe:3200:2::1-fd:3ffe:3200:2::ffff",
+			},
+		},
+		{
+			ranges: []string{
+				"fd:3ffe:3200:2::1-fd:3ffe:3200:2::ff",
+				"fd:3ffe:3200:2::80-fd:3ffe:3200:2::ffff",
+			},
+			wants: []string{
+				"fd:3ffe:3200:2::1-fd:3ffe:3200:2::ffff",
+			},
+		},
+		{
+			ranges: []string{
+				"fd:3ffe:3200:2::80-fd:3ffe:3200:2::ffff",
+				"fd:3ffe:3200:2::1-fd:3ffe:3200:2::ff",
+			},
+			wants: []string{
+				"fd:3ffe:3200:2::1-fd:3ffe:3200:2::ffff",
+			},
+		},
+	}
+	for _, c := range cases {
+		ranges := make([]IPV6AddrRange, 0)
+		for _, r := range c.ranges {
+			parts := strings.Split(r, "-")
+			start, _ := NewIPV6Addr(parts[0])
+			end, _ := NewIPV6Addr(parts[1])
+			ranges = append(ranges, NewIPV6AddrRange(start, end))
+		}
+		merged := IPV6AddrRangeList(ranges).Merge()
+		mergeStrs := make([]string, 0, len(merged))
+		for _, m := range merged {
+			mergeStrs = append(mergeStrs, m.String())
+		}
+		if jsonutils.Marshal(mergeStrs).String() != jsonutils.Marshal(c.wants).String() {
+			t.Errorf("merge %s expect %s got %s", jsonutils.Marshal(c.ranges).String(), jsonutils.Marshal(c.wants).String(), jsonutils.Marshal(mergeStrs).String())
 		}
 	}
 }

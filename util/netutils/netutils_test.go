@@ -16,7 +16,10 @@ package netutils
 
 import (
 	"fmt"
+	"strings"
 	"testing"
+
+	"yunion.io/x/jsonutils"
 )
 
 func TestFormatMacAddr(t *testing.T) {
@@ -163,8 +166,8 @@ func TestIPV4AddrRange_Substract(t *testing.T) {
 		}
 		return i
 	}
-	ar := nir(ni("192.168.2.0"), ni("192.168.2.255"))
 	t.Run("disjoint (left)", func(t *testing.T) {
+		ar := nir(ni("192.168.2.0"), ni("192.168.2.255"))
 		ar2 := nir(ni("192.168.1.2"), ni("192.168.1.255"))
 		lefts, sub := ar.Substract(ar2)
 		if len(lefts) != 1 || !lefts[0].equals(ar) {
@@ -175,6 +178,7 @@ func TestIPV4AddrRange_Substract(t *testing.T) {
 		}
 	})
 	t.Run("overlap (cut right)", func(t *testing.T) {
+		ar := nir(ni("192.168.2.0"), ni("192.168.2.255"))
 		ar2 := nir(ni("192.168.2.128"), ni("192.168.3.255"))
 		lefts, sub := ar.Substract(ar2)
 		if len(lefts) != 1 || !lefts[0].equals(nir(ni("192.168.2.0"), ni("192.168.2.127"))) {
@@ -185,6 +189,7 @@ func TestIPV4AddrRange_Substract(t *testing.T) {
 		}
 	})
 	t.Run("contains (true subset)", func(t *testing.T) {
+		ar := nir(ni("192.168.2.0"), ni("192.168.2.255"))
 		ar2 := nir(ni("192.168.2.33"), ni("192.168.2.44"))
 		lefts, sub := ar.Substract(ar2)
 		if len(lefts) != 2 || !lefts[0].equals(nir(ni("192.168.2.0"), ni("192.168.2.32"))) || !lefts[1].equals(nir(ni("192.168.2.45"), ni("192.168.2.255"))) {
@@ -195,30 +200,45 @@ func TestIPV4AddrRange_Substract(t *testing.T) {
 		}
 	})
 	t.Run("contains (align left)", func(t *testing.T) {
+		ar := nir(ni("192.168.2.0"), ni("192.168.2.255"))
 		ar2 := nir(ni("192.168.2.0"), ni("192.168.2.33"))
 		lefts, sub := ar.Substract(ar2)
 		if len(lefts) != 1 || !lefts[0].equals(nir(ni("192.168.2.34"), ni("192.168.2.255"))) {
-			t.Fatalf("bad `lefts`")
+			t.Fatalf("bad ar %s substract ar2 %s `lefts` %s", ar.String(), ar2.String(), IPV4AddrRangeList(lefts).String())
 		}
 		if !sub.equals(nir(ni("192.168.2.0"), ni("192.168.2.33"))) {
 			t.Fatalf("bad `sub`")
 		}
 	})
 	t.Run("contains (align right)", func(t *testing.T) {
+		ar := nir(ni("192.168.2.0"), ni("192.168.2.255"))
 		ar2 := nir(ni("192.168.2.44"), ni("192.168.2.255"))
 		lefts, sub := ar.Substract(ar2)
 		if len(lefts) != 1 || !lefts[0].equals(nir(ni("192.168.2.0"), ni("192.168.2.43"))) {
-			t.Fatalf("bad `lefts`")
+			t.Fatalf("bad `lefts` %s", IPV4AddrRangeList(lefts).String())
 		}
 		if !sub.equals(nir(ni("192.168.2.44"), ni("192.168.2.255"))) {
 			t.Fatalf("bad `sub`")
 		}
 	})
 	t.Run("contained by", func(t *testing.T) {
+		ar := nir(ni("192.168.2.0"), ni("192.168.2.255"))
 		ar2 := nir(ni("192.168.1.255"), ni("192.168.3.0"))
 		lefts, sub := ar.Substract(ar2)
 		if len(lefts) != 0 {
 			t.Fatalf("bad `lefts`")
+		}
+		if !sub.equals(ar) {
+			t.Fatalf("bad `sub`")
+		}
+	})
+
+	t.Run("192.168.2.0/25 - 192.168.2.0/24", func(t *testing.T) {
+		ar := nir(ni("192.168.2.0"), ni("192.168.2.127"))
+		ar2 := nir(ni("192.168.2.0"), ni("192.168.2.255"))
+		lefts, sub := ar.Substract(ar2)
+		if len(lefts) != 0 {
+			t.Fatalf("bad ar %s substract ar2 %s `lefts` %s", ar.String(), ar2.String(), IPV4AddrRangeList(lefts).String())
 		}
 		if !sub.equals(ar) {
 			t.Fatalf("bad `sub`")
@@ -257,5 +277,170 @@ func TestNetlen2Mask(t *testing.T) {
 				t.Errorf("Netlen2Mask() = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestPrefix2Range(t *testing.T) {
+	cases := []struct {
+		prefix   string
+		rangeStr string
+	}{
+		{
+			prefix:   "0.0.0.0/0",
+			rangeStr: "0.0.0.0-255.255.255.255",
+		},
+		{
+			prefix:   "192.168.222.0/24",
+			rangeStr: "192.168.222.0-192.168.222.255",
+		},
+	}
+	for _, c := range cases {
+		pref, err := NewIPV4Prefix(c.prefix)
+		if err != nil {
+			t.Errorf("prefix %s fail %s", c.prefix, err)
+		} else {
+			ipRange := pref.ToIPRange()
+			if ipRange.String() != c.rangeStr {
+				t.Errorf("prefix %s to range got %s want %s", pref.String(), ipRange.String(), c.rangeStr)
+			}
+		}
+	}
+}
+
+func TestV4RangeListMerge(t *testing.T) {
+	cases := []struct {
+		ranges []string
+		wants  []string
+	}{
+		{
+			ranges: []string{
+				"192.168.22.1-192.168.22.127",
+				"192.168.22.127-192.168.22.255",
+			},
+			wants: []string{
+				"192.168.22.1-192.168.22.255",
+			},
+		},
+		{
+			ranges: []string{
+				"192.168.22.1-192.168.22.127",
+				"192.168.22.128-192.168.22.255",
+			},
+			wants: []string{
+				"192.168.22.1-192.168.22.255",
+			},
+		},
+		{
+			ranges: []string{
+				"192.168.22.128-192.168.22.255",
+				"192.168.22.1-192.168.22.127",
+			},
+			wants: []string{
+				"192.168.22.1-192.168.22.255",
+			},
+		},
+	}
+	for _, c := range cases {
+		ranges := make([]IPV4AddrRange, 0)
+		for _, r := range c.ranges {
+			parts := strings.Split(r, "-")
+			start, _ := NewIPV4Addr(parts[0])
+			end, _ := NewIPV4Addr(parts[1])
+			ranges = append(ranges, NewIPV4AddrRange(start, end))
+		}
+		merged := IPV4AddrRangeList(ranges).Merge()
+		mergeStrs := make([]string, 0, len(merged))
+		for _, m := range merged {
+			mergeStrs = append(mergeStrs, m.String())
+		}
+		if jsonutils.Marshal(mergeStrs).String() != jsonutils.Marshal(c.wants).String() {
+			t.Errorf("merge %s expect %s got %s", jsonutils.Marshal(c.ranges).String(), jsonutils.Marshal(c.wants).String(), jsonutils.Marshal(mergeStrs).String())
+		}
+	}
+}
+
+func TestV4RangeToPrefix(t *testing.T) {
+	cases := []struct {
+		start    string
+		end      string
+		prefixes []string
+	}{
+		{
+			start: "192.168.22.0",
+			end:   "192.168.22.255",
+			prefixes: []string{
+				"192.168.22.0/24",
+			},
+		},
+		{
+			start: "192.168.22.0",
+			end:   "192.168.23.255",
+			prefixes: []string{
+				"192.168.22.0/23",
+			},
+		},
+		{
+			start: "192.168.22.0",
+			end:   "192.168.23.0",
+			prefixes: []string{
+				"192.168.22.0/24",
+				"192.168.23.0/32",
+			},
+		},
+		{
+			start: "192.168.21.255",
+			end:   "192.168.23.0",
+			prefixes: []string{
+				"192.168.21.255/32",
+				"192.168.22.0/24",
+				"192.168.23.0/32",
+			},
+		},
+		{
+			start: "192.168.21.254",
+			end:   "192.168.23.0",
+			prefixes: []string{
+				"192.168.21.254/31",
+				"192.168.22.0/24",
+				"192.168.23.0/32",
+			},
+		},
+		{
+			start: "192.168.21.254",
+			end:   "192.168.23.0",
+			prefixes: []string{
+				"192.168.21.254/31",
+				"192.168.22.0/24",
+				"192.168.23.0/32",
+			},
+		},
+		{
+			start: "0.0.0.0",
+			end:   "255.255.255.255",
+			prefixes: []string{
+				"0.0.0.0/0",
+			},
+		},
+	}
+	for _, c := range cases {
+		startIp, err := NewIPV4Addr(c.start)
+		if err != nil {
+			t.Errorf("NewIPV4Addr %s fail %s", c.start, err)
+		} else {
+			endIp, err := NewIPV4Addr(c.end)
+			if err != nil {
+				t.Errorf("NewIPV4Addr %s fail %s", c.end, err)
+			} else {
+				v4Range := NewIPV4AddrRange(startIp, endIp)
+				prefixes := v4Range.ToIPNets()
+				prefStr := make([]string, 0, len(prefixes))
+				for i := range prefixes {
+					prefStr = append(prefStr, prefixes[i].String())
+				}
+				if jsonutils.Marshal(prefStr).String() != jsonutils.Marshal(c.prefixes).String() {
+					t.Errorf("expect %s got %s", jsonutils.Marshal(c.prefixes).String(), jsonutils.Marshal(prefStr).String())
+				}
+			}
+		}
 	}
 }
