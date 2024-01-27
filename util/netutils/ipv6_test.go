@@ -689,3 +689,31 @@ func TestV6RangeListMerge(t *testing.T) {
 		}
 	}
 }
+
+func TestMac2LinkLocal(t *testing.T) {
+	cases := []struct {
+		mac       string
+		linkLocal string
+	}{
+		{
+			mac:       "52:74:f2:b1:a8:7f",
+			linkLocal: "fe80::5074:f2ff:feb1:a87f",
+		},
+		{
+			mac:       "9a:e0:62:3f:e5:8c",
+			linkLocal: "fe80::98e0:62ff:fe3f:e58c",
+		},
+		{
+			mac:       "00:00:00:00:00:00",
+			linkLocal: "fe80::200:ff:fe00:0",
+		},
+	}
+	for _, c := range cases {
+		v6, err := Mac2LinkLocal(c.mac)
+		if err != nil {
+			t.Errorf("Mac2LinkLocal %s fail %s", c.mac, err)
+		} else if v6.String() != c.linkLocal {
+			t.Errorf("Mac2LinkLocal %s got %s want %s", c.mac, v6.String(), c.linkLocal)
+		}
+	}
+}
