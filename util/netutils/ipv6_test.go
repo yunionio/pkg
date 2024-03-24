@@ -253,6 +253,19 @@ func TestNewIPV6Addr(t *testing.T) {
 			netAddr:       "::1200:0:0:0",
 			broadcastAddr: "::12ff:ffff:ffff:ffff",
 		},
+		{
+			in: "fc00:0:1:1004::10",
+			wantAddr: IPV6Addr{
+				0xfc00, 0, 1, 0x1004, 0, 0, 0, 0x10,
+			},
+			want:     "fc00:0:1:1004::10",
+			stepUp:   "fc00:0:1:1004::11",
+			stepDown: "fc00:0:1:1004::f",
+
+			preflen:       64,
+			netAddr:       "fc00:0:1:1004::",
+			broadcastAddr: "fc00::1:1004:ffff:ffff:ffff:ffff",
+		},
 	}
 	for _, c := range cases {
 		addr6, err := NewIPV6Addr(c.in)
@@ -390,6 +403,10 @@ func TestRandomAddress(t *testing.T) {
 		{
 			addr1: "::1234:1",
 			addr2: "::1238:ffff",
+		},
+		{
+			addr1: "fc00:0:1:1004::10",
+			addr2: "fc00::1:1004:ffff:ffff:ffff:ffff",
 		},
 	}
 	for _, c := range cases {
