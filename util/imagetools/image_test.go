@@ -109,6 +109,22 @@ func TestNormalizeImageInfo(t *testing.T) {
 			OsLang:    "",
 			OsArch:    "x86_64",
 		},
+		{
+			Name:      "Amazon Linux 2023 AMI",
+			OsDistro:  "Amazon Linux",
+			OsType:    osprofile.OS_TYPE_LINUX,
+			OsVersion: "2023",
+			OsLang:    "",
+			OsArch:    "x86_64",
+		},
+		{
+			Name:      "Amazon Linux 2 AMI (HVM) - Kernel 5.10, SSD Volume Type",
+			OsDistro:  "Amazon Linux",
+			OsType:    osprofile.OS_TYPE_LINUX,
+			OsVersion: "2",
+			OsLang:    "",
+			OsArch:    "x86_64",
+		},
 	}
 
 	for _, image := range images {
