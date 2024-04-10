@@ -125,6 +125,14 @@ func TestNormalizeImageInfo(t *testing.T) {
 			OsLang:    "",
 			OsArch:    "x86_64",
 		},
+		{
+			Name:      "EKS Kubernetes Worker AMI with AmazonLinux2 image, (k8s: 1.24.17, docker: 20.10.*, containerd: 1.7.*)",
+			OsDistro:  "Amazon Linux",
+			OsType:    osprofile.OS_TYPE_LINUX,
+			OsVersion: "2",
+			OsLang:    "",
+			OsArch:    "x86_64",
+		},
 	}
 
 	for _, image := range images {
