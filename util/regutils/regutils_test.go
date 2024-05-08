@@ -92,6 +92,8 @@ func TestRegexp(t *testing.T) {
 		{"2022-06-01 23:59:59 +0000 UTC", "MatchClickhouseTime", MatchClickhouseTime, true},
 		{"2023-03-23 12:02:19.206", "MatchFullISOTime2", MatchFullISOTime2, false},
 		{"2023-03-23 12:02:19.206", "MatchFullISOTime3", MatchFullISOTime3, true},
+		{"Tue Feb 14 14:52:50 2023", "MatchCephTime", MatchCephTime, true},
+		{"Tue May  7 15:46:33 2024", "MatchCephTime", MatchCephTime, true},
 	}
 	for _, c := range cases {
 		got := c.regfunc(c.in)

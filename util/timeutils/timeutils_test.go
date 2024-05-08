@@ -43,6 +43,7 @@ func TestTimeUtils(t *testing.T) {
 		CompactTime,
 		ZStackTime,
 		FullIsoNanoTime,
+		CephTime,
 	} {
 		tm2, err := ParseTimeStr(tmf(tm))
 		if err != nil {
@@ -149,6 +150,11 @@ func TestParseTimeStrInTimeZone(t *testing.T) {
 			in:       "2020-06-01",
 			timezone: "Asia/Shanghai",
 			want:     "2020-05-31T16:00:00Z",
+		},
+		{
+			in:       "Tue May  7 15:46:31 2024",
+			timezone: "Asia/Shanghai",
+			want:     "2024-05-07T07:46:31Z",
 		},
 	}
 	for _, c := range cases {
