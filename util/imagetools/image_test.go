@@ -133,6 +133,14 @@ func TestNormalizeImageInfo(t *testing.T) {
 			OsLang:    "",
 			OsArch:    "x86_64",
 		},
+		{
+			Name:      "UOS 20 1050 Hygon 64位",
+			OsDistro:  "UOS",
+			OsType:    osprofile.OS_TYPE_LINUX,
+			OsVersion: "20 1050",
+			OsLang:    "",
+			OsArch:    "x86_64",
+		},
 	}
 
 	for _, image := range images {
