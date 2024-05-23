@@ -129,7 +129,7 @@ func TestNewIPV6Addr(t *testing.T) {
 				0x2001, 0xdb8, 0x3333, 0x4444, 0xcccc, 0xdddd, 0xeeee, 0xffff,
 			},
 			want:     "2001:db8:3333:4444:cccc:dddd:eeee:ffff",
-			stepUp:   "2001:db8:3333:4444:cccc:dddd:eeef::",
+			stepUp:   "2001:db8:3333:4444:cccc:dddd:eeef:0",
 			stepDown: "2001:db8:3333:4444:cccc:dddd:eeee:fffe",
 
 			preflen:       96,
@@ -264,7 +264,20 @@ func TestNewIPV6Addr(t *testing.T) {
 
 			preflen:       64,
 			netAddr:       "fc00:0:1:1004::",
-			broadcastAddr: "fc00::1:1004:ffff:ffff:ffff:ffff",
+			broadcastAddr: "fc00:0:1:1004:ffff:ffff:ffff:ffff",
+		},
+		{
+			in: "fc00::1:1004:ac1f:68f0:1433:ca53",
+			wantAddr: IPV6Addr{
+				0xfc00, 0, 1, 0x1004, 0xac1f, 0x68f0, 0x1433, 0xca53,
+			},
+			want:     "fc00:0:1:1004:ac1f:68f0:1433:ca53",
+			stepUp:   "fc00:0:1:1004:ac1f:68f0:1433:ca54",
+			stepDown: "fc00:0:1:1004:ac1f:68f0:1433:ca52",
+
+			preflen:       64,
+			netAddr:       "fc00:0:1:1004::",
+			broadcastAddr: "fc00:0:1:1004:ffff:ffff:ffff:ffff",
 		},
 	}
 	for _, c := range cases {
