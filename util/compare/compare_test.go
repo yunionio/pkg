@@ -111,6 +111,27 @@ func TestCompareSets2(t *testing.T) {
 			added:      []string{"6"},
 			duplicated: []string{"7"},
 		},
+		{
+			db: []LocalRes{
+				{Name: "1", ExternalId: ""},
+				{Name: "2", ExternalId: "2"},
+				{Name: "3", ExternalId: "3"},
+				{Name: "4", ExternalId: "4"},
+				{Name: "5", ExternalId: "5"},
+				{Name: "7", ExternalId: "7"},
+			},
+			remote: []RemoteRes{
+				{Name: "2", GlobalId: "2"},
+				{Name: "4", GlobalId: "4"},
+				{Name: "6", GlobalId: "6"},
+				{Name: "7-1", GlobalId: "7"},
+				{Name: "7-2", GlobalId: "7"},
+			},
+			common:     []string{"2", "4"},
+			removed:    []string{"3", "5"},
+			added:      []string{"6"},
+			duplicated: []string{"7"},
+		},
 	}
 	for _, d := range data {
 		removed := []LocalRes{}
