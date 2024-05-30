@@ -33,9 +33,6 @@ github.com/go-playground/universal-translator
 # github.com/go-playground/validator/v10 v10.4.1
 ## explicit; go 1.13
 github.com/go-playground/validator/v10
-# github.com/go-sql-driver/mysql v1.6.0
-## explicit; go 1.10
-github.com/go-sql-driver/mysql
 # github.com/golang-plus/errors v1.0.0
 ## explicit
 github.com/golang-plus/errors
@@ -186,6 +183,3 @@ yunion.io/x/jsonutils
 ## explicit; go 1.12
 yunion.io/x/log
 yunion.io/x/log/hooks
-# yunion.io/x/sqlchemy v1.0.1
-## explicit
-yunion.io/x/sqlchemy
