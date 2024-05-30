@@ -11,6 +11,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.12.1
 	github.com/tredoe/osutil/v2 v2.0.0-rc.16
+	github.com/ulikunitz/xz v0.5.12
 	golang.org/x/sys v0.0.0-20220412211240-33da011f77ad
 	golang.org/x/text v0.3.6
 	moul.io/http2curl/v2 v2.3.0
