@@ -16,7 +16,6 @@ require (
 	moul.io/http2curl/v2 v2.3.0
 	yunion.io/x/jsonutils v0.0.0-20220106020632-953b71a4c3a8
 	yunion.io/x/log v1.0.0
-	yunion.io/x/sqlchemy v1.0.1
 )
 
 require (
@@ -28,7 +27,6 @@ require (
 	github.com/go-playground/locales v0.13.0 // indirect
 	github.com/go-playground/universal-translator v0.17.0 // indirect
 	github.com/go-playground/validator/v10 v10.4.1 // indirect
-	github.com/go-sql-driver/mysql v1.6.0 // indirect
 	github.com/golang-plus/errors v1.0.0 // indirect
 	github.com/golang-plus/testing v1.0.0 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
