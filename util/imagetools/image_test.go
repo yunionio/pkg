@@ -141,6 +141,14 @@ func TestNormalizeImageInfo(t *testing.T) {
 			OsLang:    "",
 			OsArch:    "x86_64",
 		},
+		{
+			Name:      "TencentOS Server 2.4",
+			OsDistro:  "TencentOS Server",
+			OsType:    osprofile.OS_TYPE_LINUX,
+			OsVersion: "2.4",
+			OsLang:    "",
+			OsArch:    "x86_64",
+		},
 	}
 
 	for _, image := range images {
