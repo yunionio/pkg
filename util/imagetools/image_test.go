@@ -149,6 +149,22 @@ func TestNormalizeImageInfo(t *testing.T) {
 			OsLang:    "",
 			OsArch:    "x86_64",
 		},
+		{
+			Name:      "Template-Win8",
+			OsDistro:  "Windows",
+			OsType:    osprofile.OS_TYPE_WINDOWS,
+			OsVersion: "8",
+			OsLang:    "",
+			OsArch:    "x86_64",
+		},
+		{
+			Name:      "Template-Win2019",
+			OsDistro:  "Windows Server",
+			OsType:    osprofile.OS_TYPE_WINDOWS,
+			OsVersion: "2019",
+			OsLang:    "",
+			OsArch:    "x86_64",
+		},
 	}
 
 	for _, image := range images {
