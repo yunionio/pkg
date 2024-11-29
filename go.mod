@@ -10,11 +10,11 @@ require (
 	github.com/mozillazg/go-pinyin v0.19.0
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.12.1
-	github.com/tredoe/osutil/v2 v2.0.0-rc.16
+	github.com/tredoe/osutil v1.5.0
 	golang.org/x/sys v0.0.0-20220412211240-33da011f77ad
 	golang.org/x/text v0.3.6
 	moul.io/http2curl/v2 v2.3.0
-	yunion.io/x/jsonutils v0.0.0-20220106020632-953b71a4c3a8
+	yunion.io/x/jsonutils v1.0.0
 	yunion.io/x/log v1.0.0
 	yunion.io/x/sqlchemy v1.0.1
 )
