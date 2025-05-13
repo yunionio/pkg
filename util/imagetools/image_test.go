@@ -165,6 +165,14 @@ func TestNormalizeImageInfo(t *testing.T) {
 			OsLang:    "",
 			OsArch:    "x86_64",
 		},
+		{
+			Name:      "rocky9.5-s1-chrony-tppadm-20250418-image",
+			OsDistro:  "Rocky Linux",
+			OsType:    osprofile.OS_TYPE_LINUX,
+			OsVersion: "9.5",
+			OsLang:    "",
+			OsArch:    "x86_64",
+		},
 	}
 
 	for _, image := range images {
