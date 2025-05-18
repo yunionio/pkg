@@ -661,7 +661,7 @@ func TestTransSQLAchemyURL(t *testing.T) {
 		{
 			name:    "should convert",
 			args:    args{"mysql+pymysql://root:root@127.0.0.1:3306/mclouds?charset=utf8"},
-			wantRet: "root:root@tcp(127.0.0.1:3306)/mclouds?charset=utf8&parseTime=True",
+			wantRet: "root:root@tcp(127.0.0.1:3306)/mclouds?charset=utf8&interpolateParams=true&parseTime=true",
 			wantErr: false,
 		},
 		{
@@ -672,7 +672,7 @@ func TestTransSQLAchemyURL(t *testing.T) {
 		}, {
 			name:    "supported at",
 			args:    args{"mysql+pymysql://root:5bTcx^@Peh4nj3H7@127.0.0.1:3306/mclouds?charset=utf8"},
-			wantRet: "root:5bTcx^@Peh4nj3H7@tcp(127.0.0.1:3306)/mclouds?charset=utf8&parseTime=True",
+			wantRet: "root:5bTcx^@Peh4nj3H7@tcp(127.0.0.1:3306)/mclouds?charset=utf8&interpolateParams=true&parseTime=true",
 			wantErr: false,
 		},
 	}
