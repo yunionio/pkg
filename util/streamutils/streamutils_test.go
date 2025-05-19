@@ -28,6 +28,8 @@ func TestStreamPipe(t *testing.T) {
 	for _, bufSize := range []int{
 		324553,
 		2312,
+		5,
+		0,
 	} {
 		seed := rand.New(rand.NewSource(int64(bufSize)))
 		buf := make([]byte, bufSize)
@@ -45,7 +47,9 @@ func TestStreamPipe(t *testing.T) {
 			t.Errorf("Steampipe fail %s", err)
 		} else {
 			t.Logf("stat %#v", stat)
-			if !reflect.DeepEqual(buf, outBuf.Bytes()) {
+			if len(buf) != len(outBuf.Bytes()) {
+				t.Errorf("input len %d != output len %d", len(buf), len(outBuf.Bytes()) )
+			} else if len(buf) > 0 && !reflect.DeepEqual(buf, outBuf.Bytes()) {
 				t.Errorf("input != output")
 			}
 		}
@@ -56,6 +60,8 @@ func TestStreamPipeXZ(t *testing.T) {
 	for _, bufSize := range []int{
 		324553,
 		2312,
+		5,
+		0,
 	} {
 		seed := rand.New(rand.NewSource(int64(bufSize)))
 		buf := make([]byte, bufSize)
@@ -97,7 +103,9 @@ func TestStreamPipeXZ(t *testing.T) {
 			t.Errorf("Steampipe fail %s", err)
 		} else {
 			t.Logf("stat %#v", stat)
-			if !reflect.DeepEqual(buf, outBuf.Bytes()) {
+			if len(buf) != len(outBuf.Bytes()) {
+				t.Errorf("input len %d != output len %d", len(buf), len(outBuf.Bytes()) )
+			} else if len(buf) > 0 && !reflect.DeepEqual(buf, outBuf.Bytes()) {
 				t.Errorf("input != output")
 			}
 		}
