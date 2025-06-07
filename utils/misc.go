@@ -578,7 +578,8 @@ func TransSQLAchemyURL(pySQLSrc string) (dialect, ret string, err error) {
 	} else {
 		query = url.Values{}
 	}
-	query.Set("parseTime", "True")
+	query.Set("parseTime", "true")
+	query.Set("interpolateParams", "true")
 	ret = fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?%s", user, passwd, host, port, dburl, query.Encode())
 	return
 }
