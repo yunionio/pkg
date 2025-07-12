@@ -737,6 +737,10 @@ func TestMac2LinkLocal(t *testing.T) {
 			mac:       "00:00:00:00:00:00",
 			linkLocal: "fe80::200:ff:fe00:0",
 		},
+		{
+			mac:       "14:09:dc:cf:16:d5",
+			linkLocal: "fe80::1609:dcff:fecf:16d5",
+		},
 	}
 	for _, c := range cases {
 		v6, err := Mac2LinkLocal(c.mac)
@@ -744,6 +748,32 @@ func TestMac2LinkLocal(t *testing.T) {
 			t.Errorf("Mac2LinkLocal %s fail %s", c.mac, err)
 		} else if v6.String() != c.linkLocal {
 			t.Errorf("Mac2LinkLocal %s got %s want %s", c.mac, v6.String(), c.linkLocal)
+		}
+	}
+}
+
+func TestIPV6ToNetIP(t *testing.T) {
+	cases := []struct {
+		ipv6 string
+	}{
+		{
+			ipv6: "fd:3ffe:3200:2::1",
+		},
+		{
+			ipv6: "::",
+		},
+		{
+			ipv6: "::1",
+		},
+		{
+			ipv6: "::ffff:ffff:ffff:ffff",
+		},
+	}
+	for _, c := range cases {
+		ipv6, _ := NewIPV6Addr(c.ipv6)
+		netIP := ipv6.ToIP()
+		if netIP.String() != ipv6.String() {
+			t.Errorf("IPv6 %s to netIP got %s want %s", c.ipv6, netIP.String(), ipv6.String())
 		}
 	}
 }
