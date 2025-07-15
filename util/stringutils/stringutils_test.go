@@ -163,3 +163,29 @@ func TestContainsWord(t *testing.T) {
 		}
 	}
 }
+
+func TestByte2Str(t *testing.T) {
+	cases := []struct {
+		in []byte
+		want string
+	}{
+		{
+			in: []byte{0x00},
+			want: "00",
+		},
+		{
+			in: []byte{0x00, 0xff},
+			want: "00ff",
+		},
+		{
+			in: []byte{0xfe, 0x80, 0x00, 0x00},
+			want: "fe800000",
+		},
+	}
+	for _, c := range cases {
+		got := Bytes2Str(c.in)
+		if got != c.want {
+			t.Errorf("got %s want %s", got, c.want)
+		}
+	}
+}
