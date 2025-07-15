@@ -675,6 +675,24 @@ func TestTransSQLAchemyURL(t *testing.T) {
 			wantRet: "root:5bTcx^@Peh4nj3H7@tcp(127.0.0.1:3306)/mclouds?charset=utf8mb4&interpolateParams=true&parseTime=true",
 			wantErr: false,
 		},
+		{
+			name:    "ipv6 support",
+			args:    args{"mysql+pymysql://yunioncloud:RkVXW5Sy@te96Atk7@[3ffe:3222:ff::f9]:3306/yunioncloud?charset=utf8&parseTime=true&interpolateParams=true"},
+			wantRet: "yunioncloud:RkVXW5Sy@te96Atk7@tcp([3ffe:3222:ff::f9]:3306)/yunioncloud?charset=utf8mb4&interpolateParams=true&parseTime=true",
+			wantErr: false,
+		},
+		{
+			name:    "ipv6 localhost",
+			args:    args{"mysql+pymysql://root:password@[::1]:3306/testdb?charset=utf8"},
+			wantRet: "root:password@tcp([::1]:3306)/testdb?charset=utf8mb4&interpolateParams=true&parseTime=true",
+			wantErr: false,
+		},
+		{
+			name:    "ipv6 full address",
+			args:    args{"mysql+pymysql://user:pass@[2001:db8::1234:5678]:3306/mydb"},
+			wantRet: "user:pass@tcp([2001:db8::1234:5678]:3306)/mydb?charset=utf8mb4&interpolateParams=true&parseTime=true",
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
