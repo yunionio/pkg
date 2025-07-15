@@ -15,6 +15,8 @@
 package netutils
 
 import (
+	"math/big"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -775,5 +777,67 @@ func TestIPV6ToNetIP(t *testing.T) {
 		if netIP.String() != ipv6.String() {
 			t.Errorf("IPv6 %s to netIP got %s want %s", c.ipv6, netIP.String(), ipv6.String())
 		}
+	}
+}
+
+/*
+	start1: "fd:3ffe:3200:2::1",
+	end1:   "fd:3ffe:3200:2::ff",
+	start2: "fd:3ffe:3200:2::80",
+	end2:   "fd:3ffe:3200:2::8f",
+*/
+
+func TestIPV6AddrRange_AddressCount(t *testing.T) {
+	type fields struct {
+		start IPV6Addr
+		end   IPV6Addr
+	}
+
+	newFields := func(start, end string) fields {
+		startAddr, err := NewIPV6Addr(start)
+		if err != nil {
+			t.Errorf("failed parse addr %s: %s", start, err)
+		}
+		endAddr, err := NewIPV6Addr(end)
+		if err != nil {
+			t.Errorf("failed parse addr %s: %s", end, err)
+		}
+		return fields{startAddr, endAddr}
+	}
+
+	getBigInt := func(str string) *big.Int {
+		res := big.Int{}
+		res.SetString(str, 10)
+		return &res
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   *big.Int
+	}{
+		{
+			"range1",
+			newFields("fd:3ffe:3200:2::1", "fd:3ffe:3200:2::ff"),
+			big.NewInt(255),
+		}, {
+			"range2",
+			newFields("2404:c2c0:8e5f:e501::4", "2404:c2c0:8e5f:e501:ffff:ffff:ffff:fffe"),
+			getBigInt("18446744073709551611"),
+		}, {
+			"range3",
+			newFields("fd:3ffe:3200:2::80", "fd:3ffe:3200:2::8f"),
+			big.NewInt(16),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ar := IPV6AddrRange{
+				start: tt.fields.start,
+				end:   tt.fields.end,
+			}
+			if got := ar.AddressCount(); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("IPV6AddrRange.AddressCount() = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }
