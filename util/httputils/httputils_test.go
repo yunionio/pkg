@@ -294,15 +294,53 @@ func TestIdleTimeout(t *testing.T) {
 	}
 }
 
-/*func TestDialTimeout(t *testing.T) {
-	cli := GetAdaptiveTimeoutClient()
-	resp, err := cli.Get(fmt.Sprintf("http://192.0.0.1:48481"))
-	if err == nil {
-		t.Errorf("Read shoud error")
-	} else if !err.(*url.Error).Timeout() {
-		t.Errorf("Read error %s %s, should be url.Error.Timeout", err, reflect.TypeOf(err))
-	} else {
-		t.Logf("Read error %s %s", err, reflect.TypeOf(err))
+type addrPort struct {
+	url  string
+	host string
+	port int
+}
+
+var addrPortList = []addrPort{
+	{
+		url:  "http://192.0.0.1:48481",
+		host: "192.0.0.1",
+		port: 48481,
+	},
+	{
+		url:  "https://192.0.0.1",
+		host: "192.0.0.1",
+		port: 443,
+	},
+	{
+		url:  "https://[fc00::300:100]/api/s/identity/v3/auth/tokens",
+		host: "fc00::300:100",
+		port: 443,
+	},
+	{
+		url:  "http://[fc00::300:100]/api/s/identity/v3/auth/tokens",
+		host: "fc00::300:100",
+		port: 80,
+	},
+	{
+		url:  "https://[fc00::300:100]:3000/api/s/identity/v3/auth/tokens",
+		host: "fc00::300:100",
+		port: 3000,
+	},
+	{
+		url:  "https://192.0.0.1:48481",
+		host: "192.0.0.1",
+		port: 48481,
+	},
+}
+
+func TestAddrPort(t *testing.T) {
+	for _, addrPort := range addrPortList {
+		host, port, err := GetAddrPort(addrPort.url)
+		if err != nil {
+			t.Errorf("GetAddrPort error %s", err)
+		}
+		if host != addrPort.host || port != addrPort.port {
+			t.Errorf("GetAddrPort error %s, %s => %s, %d => %d", addrPort.url, host, addrPort.host, port, addrPort.port)
+		}
 	}
-	CloseResponse(resp)
-}*/
+}
