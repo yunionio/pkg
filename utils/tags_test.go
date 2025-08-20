@@ -80,6 +80,31 @@ func TestFindWords(t *testing.T) {
 	}
 }
 
+func TestSplitWords(t *testing.T) {
+	cases := []struct {
+		input string
+		want  []string
+	}{
+		{
+			input: `'file:///opt/test test.txt'   '/data/test test.txt'`,
+			want:  []string{"file:///opt/test test.txt", "/data/test test.txt"},
+		},
+		{
+			input: `'file:///opt/test test.txt'   /data/testtest.txt`,
+			want:  []string{"file:///opt/test test.txt", "/data/testtest.txt"},
+		},
+	}
+	for _, c := range cases {
+		got, err := SplitWords(c.input)
+		if err != nil {
+			t.Errorf("input %s got error %s", c.input, err)
+		}
+		if !reflect.DeepEqual(got, c.want) {
+			t.Errorf("input %s got %#v want %#v", c.input, got, c.want)
+		}
+	}
+}
+
 func TestSplitCSV(t *testing.T) {
 	cases := []struct {
 		input string
