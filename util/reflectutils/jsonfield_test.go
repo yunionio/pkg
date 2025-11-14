@@ -455,3 +455,51 @@ func TestEmbededStructPtr(t *testing.T) {
 		}
 	}
 }
+
+func TestAliases(t *testing.T) {
+	type Struct1 struct {
+		Field1 string `json:"field1" alias:"field1_alias"`
+	}
+	type Struct2 struct {
+		Field2 string `json:"field2" alias:"field2_alias"`
+	}
+	type TopStruct struct {
+		Struct1
+		Struct2
+	}
+
+	cases := []struct {
+		val   interface{}
+		name  string
+		index int
+	}{
+		{
+			val:   TopStruct{},
+			name:  "field1",
+			index: 0,
+		},
+		{
+			val:   TopStruct{},
+			name:  "field2",
+			index: 1,
+		},
+		{
+			val:   TopStruct{},
+			name:  "field1_alias",
+			index: 0,
+		},
+		{
+			val:   TopStruct{},
+			name:  "field2_alias",
+			index: 1,
+		},
+	}
+
+	for _, c := range cases {
+		set := FetchStructFieldValueSet(reflect.ValueOf(c.val))
+		got := set.GetStructFieldIndex(c.name)
+		if got != c.index {
+			t.Errorf("Got: %v Want: %v", got, c.index)
+		}
+	}
+}
