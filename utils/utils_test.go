@@ -218,3 +218,23 @@ func TestInArray(t *testing.T) {
 		}
 	}
 }
+
+func TestCamelSplit(t *testing.T) {
+	cases := []struct {
+		in   string
+		want string
+	}{
+		{"TEST", "test"},
+		{"GPUTestScore", "gpu_test_score"},
+		{"UserName", "user_name"},
+		{"AuthURL", "auth_url"},
+		{"ID_", "id_"},
+		{"DEPLOYMENT_ID_", "deployment_id_"},
+	}
+	for _, c := range cases {
+		got := CamelSplit(c.in, "_")
+		if got != c.want {
+			t.Errorf("CamelSplit(%s) = %s, want %s", c.in, got, c.want)
+		}
+	}
+}
