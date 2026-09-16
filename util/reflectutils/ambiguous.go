@@ -65,15 +65,25 @@ func expandAmbiguousPrefix(fields SStructFieldValueSet) SStructFieldValueSet {
 				if takenByOther(fields, expanded, indexes) {
 					continue
 				}
-				fields[idx].Info.Name = expanded
-				if depBy, ok := fields[idx].Info.Tags[TAG_DEPRECATED_BY]; ok {
-					fields[idx].Info.Tags[TAG_DEPRECATED_BY] = fmt.Sprintf("%s%s", amPrefix, depBy)
+				info := fields[idx].Info
+				info.Name = expanded
+				_, newDepBy := info.Tags[TAG_DEPRECATED_BY]
+				_, oldDepBy := info.Tags[TAG_OLD_DEPRECATED_BY]
+				if newDepBy || oldDepBy {
+					// the tags may still be shared with other callers
+					info.copyTags()
 				}
-				if depBy, ok := fields[idx].Info.Tags[TAG_OLD_DEPRECATED_BY]; ok {
-					fields[idx].Info.Tags[TAG_OLD_DEPRECATED_BY] = fmt.Sprintf("%s%s", amPrefix, depBy)
+				if newDepBy {
+					info.Tags[TAG_DEPRECATED_BY] = fmt.Sprintf("%s%s", amPrefix, info.Tags[TAG_DEPRECATED_BY])
 				}
-				for i := range fields[idx].Info.Aliases {
-					fields[idx].Info.Aliases[i] = fmt.Sprintf("%s%s", amPrefix, fields[idx].Info.Aliases[i])
+				if oldDepBy {
+					info.Tags[TAG_OLD_DEPRECATED_BY] = fmt.Sprintf("%s%s", amPrefix, info.Tags[TAG_OLD_DEPRECATED_BY])
+				}
+				if len(info.Aliases) > 0 {
+					info.copyAliases()
+					for i := range info.Aliases {
+						info.Aliases[i] = fmt.Sprintf("%s%s", amPrefix, info.Aliases[i])
+					}
 				}
 				prefixed[idx] = true
 				changed = true

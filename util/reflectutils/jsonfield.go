@@ -29,6 +29,11 @@ import (
 // This struct has unexported fields initialized by exported functions in this
 // package.  Do not construct a literal or modify the exported fields in an
 // unmanaged way
+//
+// In particular the Tags map and the Aliases slice of an info obtained from
+// the fetch functions are shared with the other callers of those functions,
+// so they must not be written to; the package keeps a private copy of them
+// for the fields it has to modify itself.
 type SStructFieldInfo struct {
 	// True if the field has json tag `json:"-"`
 	Ignore bool
@@ -77,30 +82,22 @@ type SStructFieldInfo struct {
 	Aliases []string
 }
 
-func (s *SStructFieldInfo) updateTags(k, v string) {
-	s.Tags[k] = v
-}
-
-func (s SStructFieldInfo) deepCopy() *SStructFieldInfo {
-	scopy := SStructFieldInfo{
-		Ignore:         s.Ignore,
-		OmitEmpty:      s.OmitEmpty,
-		OmitFalse:      s.OmitFalse,
-		OmitZero:       s.OmitZero,
-		Name:           s.Name,
-		FieldName:      s.FieldName,
-		ForceString:    s.ForceString,
-		kebabFieldName: s.kebabFieldName,
-	}
-	tags := make(map[string]string, len(s.Tags))
+// copyTags takes a private copy of the tags, so that they can be written to
+// without touching the ones this info was read out of.
+func (s *SStructFieldInfo) copyTags() {
+	tags := make(map[string]string, len(s.Tags)+1)
 	for k, v := range s.Tags {
 		tags[k] = v
 	}
-	scopy.Tags = tags
+	s.Tags = tags
+}
+
+// copyAliases takes a private copy of the aliases, so that they can be
+// written to without touching the ones this info was read out of.
+func (s *SStructFieldInfo) copyAliases() {
 	aliases := make([]string, len(s.Aliases))
 	copy(aliases, s.Aliases)
-	scopy.Aliases = aliases
-	return &scopy
+	s.Aliases = aliases
 }
 
 func ParseStructFieldJsonInfo(sf reflect.StructField) SStructFieldInfo {
@@ -353,10 +350,10 @@ func fetchStructFieldValueSet3(dataValue reflect.Value, allocatePtr bool, tags m
 				continue
 			}
 		}
-		fieldInfo := fieldInfos[sf.Name].deepCopy()
+		fieldInfo := fieldInfos[sf.Name]
 		if !fieldInfo.Ignore || includeIgnore {
 			structFieldVaule := SStructFieldValue{
-				Info:  fieldInfo,
+				Info:  &fieldInfo,
 				Value: fv,
 			}
 			if parent != nil {
@@ -368,6 +365,7 @@ func fetchStructFieldValueSet3(dataValue reflect.Value, allocatePtr bool, tags m
 	if len(tags) > 0 {
 		for i := range fields {
 			fieldName := fields[i].Info.MarshalName()
+			owned := false
 			for k, v := range tags {
 				target := ""
 				pos := strings.Index(k, "->")
@@ -378,7 +376,12 @@ func fetchStructFieldValueSet3(dataValue reflect.Value, allocatePtr bool, tags m
 				if len(target) > 0 && target != fieldName {
 					continue
 				}
-				fields[i].Info.updateTags(k, v)
+				if !owned {
+					// the tags may still be shared with other callers
+					fields[i].Info.copyTags()
+					owned = true
+				}
+				fields[i].Info.Tags[k] = v
 			}
 		}
 	}

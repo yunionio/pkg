@@ -735,3 +735,134 @@ func TestFetchStructFieldValueSetNonStruct(t *testing.T) {
 		t.Errorf("a struct value should still be enumerated")
 	}
 }
+
+// 经带 tag 的内嵌取到的字段会覆盖 tag，不能污染缓存里那份
+func TestTagOverrideNotLeaking(t *testing.T) {
+	type Embeded struct {
+		Name  string `json:"name" update:"user"`
+		Other string `json:"other" alias:"the_alias"`
+	}
+	type Tagged struct {
+		Embeded `update:"admin" create:"required"`
+	}
+	type Plain struct {
+		Embeded
+	}
+
+	for _, f := range FetchStructFieldValueSet(reflect.ValueOf(Tagged{})) {
+		t.Logf("tagged: %-6s tags=%v", f.Info.MarshalName(), f.Info.Tags)
+	}
+	byName := map[string]SStructFieldValue{}
+	for _, f := range FetchStructFieldValueSet(reflect.ValueOf(Plain{})) {
+		if _, ok := f.Info.Tags["create"]; ok {
+			t.Errorf("%s: create 泄漏进缓存了: %v", f.Info.MarshalName(), f.Info.Tags)
+		}
+		byName[f.Info.FieldName] = f
+	}
+	if got := byName["Name"].Info.Tags["update"]; got != "user" {
+		t.Errorf("Name: want update=user got %q", got)
+	}
+	aliases := byName["Other"].Info.Aliases
+	if len(aliases) != 1 || aliases[0] != "the_alias" {
+		t.Errorf("Other: aliases 被改动了: %v", aliases)
+	}
+}
+
+// 歧义前缀会改 Name/Tags/Aliases，同样不能污染缓存
+func TestAmbiguousPrefixNotLeaking(t *testing.T) {
+	type Embeded struct {
+		Name string `json:"name" yunion-deprecated-by:"name2" alias:"the_name"`
+	}
+	type S1 struct{ Embeded }
+	type S2 struct{ Embeded }
+	type Prefixed struct {
+		S1 `yunion-ambiguous-prefix:"a_"`
+		S2 `yunion-ambiguous-prefix:"b_"`
+	}
+	type Plain struct{ Embeded }
+
+	for _, f := range FetchStructFieldValueSet(reflect.ValueOf(Prefixed{})) {
+		t.Logf("prefixed: %-8s dep=%-10q aliases=%v", f.Info.MarshalName(), f.Info.Tags[TAG_DEPRECATED_BY], f.Info.Aliases)
+	}
+	for _, f := range FetchStructFieldValueSet(reflect.ValueOf(Plain{})) {
+		if f.Info.Name != "name" {
+			t.Errorf("want the cached name, got %q", f.Info.Name)
+		}
+		if f.Info.Tags[TAG_DEPRECATED_BY] != "name2" {
+			t.Errorf("deprecated-by 泄漏: %q", f.Info.Tags[TAG_DEPRECATED_BY])
+		}
+		if len(f.Info.Aliases) != 1 || f.Info.Aliases[0] != "the_name" {
+			t.Errorf("aliases 泄漏: %v", f.Info.Aliases)
+		}
+	}
+}
+
+// 并发：共享缓存下必须无竞态、无串扰
+func TestFieldInfoConcurrent(t *testing.T) {
+	type Embeded struct {
+		Name string `json:"name"`
+	}
+	type Tagged struct {
+		Embeded `update:"admin" create:"required"`
+	}
+	type Plain struct{ Embeded }
+
+	done := make(chan struct{})
+	for i := 0; i < 8; i++ {
+		go func(i int) {
+			defer func() { done <- struct{}{} }()
+			for j := 0; j < 400; j++ {
+				if i%2 == 0 {
+					_ = FetchStructFieldValueSet(reflect.ValueOf(Tagged{}))
+				} else {
+					for _, f := range FetchStructFieldValueSet(reflect.ValueOf(Plain{})) {
+						if _, ok := f.Info.Tags["create"]; ok {
+							t.Errorf("并发下 tag 覆盖泄漏进缓存")
+							return
+						}
+					}
+				}
+			}
+		}(i)
+	}
+	for i := 0; i < 8; i++ {
+		<-done
+	}
+}
+
+// 带 tag 覆盖的内嵌结构体：字段的 tag 被覆写，info 需要私有化
+type BTInner struct {
+	A string
+	B string
+}
+type BTOuter struct {
+	BTInner `update:"admin" create:"required" default:"emily"`
+	C       string
+}
+
+func BenchmarkFetchStructFieldValueSetTagged(b *testing.B) {
+	v := reflect.ValueOf(BTOuter{})
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		_ = FetchStructFieldValueSet(v)
+	}
+}
+
+// 歧义前缀路径：字段被改名
+type BAInner struct {
+	Name string `json:"name"`
+}
+type BAS1 struct{ BAInner }
+type BAS2 struct{ BAInner }
+type BATop struct {
+	BAS1 `yunion-ambiguous-prefix:"a_"`
+	BAS2 `yunion-ambiguous-prefix:"b_"`
+}
+
+func BenchmarkFetchStructFieldValueSetAmbiguous(b *testing.B) {
+	v := reflect.ValueOf(BATop{})
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		_ = FetchStructFieldValueSet(v)
+	}
+}
