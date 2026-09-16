@@ -55,3 +55,45 @@ func TestLabelEncode(t *testing.T) {
 		}
 	}
 }
+
+// Escaping expands a rune into "_" plus two hex digits, which can only
+// represent code points up to 0xff. Anything above that range must be
+// written through as-is.
+func TestLabelEncodeBounds(t *testing.T) {
+	cases := []struct {
+		label       string
+		encodeLabel string
+	}{
+		{label: "ÿ", encodeLabel: "_ff"},
+		{label: "Ā", encodeLabel: "Ā"},
+		{label: "你好", encodeLabel: "你好"},
+		{label: "\U0001f600", encodeLabel: "\U0001f600"},
+	}
+	for _, c := range cases {
+		if got := EncodeGoogleLabel(c.label); got != c.encodeLabel {
+			t.Errorf("EncodeGoogleLabel(%q) = %q, want %q", c.label, got, c.encodeLabel)
+		}
+	}
+}
+
+// A "_" that is not followed by two hex digits is a literal rune, including
+// when it sits at the very end of the input.
+func TestDecodeGoogleLabelIncompleteEscape(t *testing.T) {
+	cases := map[string]string{
+		"":     "",
+		"_":    "_",
+		"_a":   "_a",
+		"__":   "__",
+		"a_b":  "a_b",
+		"abc_": "abc_",
+		"_2f":  "/",
+		"_2fx": "/x",
+		"x_2f": "x/",
+		"_zz":  "_zz",
+	}
+	for in, want := range cases {
+		if got := DecodeGoogleLable(in); got != want {
+			t.Errorf("DecodeGoogleLable(%q) = %q, want %q", in, got, want)
+		}
+	}
+}
