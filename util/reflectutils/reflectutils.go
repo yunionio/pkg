@@ -111,22 +111,29 @@ func FindStructFieldInterface(dataValue reflect.Value, name string) (interface{}
 }
 
 func FillEmbededStructValue(container reflect.Value, embed reflect.Value) bool {
+	if !container.IsValid() || container.Kind() != reflect.Struct || !embed.IsValid() {
+		return false
+	}
 	containerType := container.Type()
+	embedType := embed.Type()
 	for i := 0; i < containerType.NumField(); i += 1 {
 		fieldType := containerType.Field(i)
-		fieldValue := container.Field(i)
-		if fieldType.Type.Kind() == reflect.Struct && fieldType.Anonymous {
-			if fieldType.Type == embed.Type() {
-				fieldValue.Set(embed)
-				return true
-			} else {
-				filled := FillEmbededStructValue(fieldValue, embed)
-				if filled {
-					return true
-				}
-			}
+		if fieldType.Type.Kind() != reflect.Struct || !fieldType.Anonymous {
+			continue
 		}
-
+		fieldValue := container.Field(i)
+		if !fieldValue.CanSet() {
+			// an unexported embedded struct can not be assigned to, and
+			// neither can anything inside it
+			continue
+		}
+		if fieldType.Type == embedType {
+			fieldValue.Set(embed)
+			return true
+		}
+		if FillEmbededStructValue(fieldValue, embed) {
+			return true
+		}
 	}
 	return false
 }
