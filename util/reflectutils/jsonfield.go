@@ -225,6 +225,12 @@ func fetchStructFieldValueSet2(dataValue reflect.Value, allocatePtr bool, tags m
 }
 
 func fetchStructFieldValueSet3(dataValue reflect.Value, allocatePtr bool, tags map[string]string, includeIgnore bool, parent *SEmbedStructFieldValue) SStructFieldValueSet {
+	if allocatePtr && !dataValue.CanAddr() {
+		// The value can not be modified in place.  Allocating a nil
+		// embedded pointer would only produce a throwaway copy, so fall
+		// back to a read-only traversal instead.
+		allocatePtr = false
+	}
 	fields := SStructFieldValueSet{}
 	dataType := dataValue.Type()
 	fieldInfos := fetchCacheStructFieldInfos(dataType)

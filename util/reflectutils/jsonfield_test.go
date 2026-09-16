@@ -539,3 +539,46 @@ func TestNilEmbededStructPtrValue(t *testing.T) {
 		t.Errorf("want x got %q", o2.Name)
 	}
 }
+
+func TestFetchStructFieldValueSetForWriteUnaddressable(t *testing.T) {
+	type Embeded struct {
+		Name string `json:"name"`
+	}
+	type Outer struct {
+		*Embeded
+		Other string `json:"other"`
+	}
+
+	// a non-addressable value can not be modified in place
+	o := Outer{}
+	set := FetchAllStructFieldValueSetForWrite(reflect.ValueOf(o))
+	if len(set) != 2 {
+		t.Fatalf("want 2 fields, got %d", len(set))
+	}
+	for i := range set {
+		if set[i].Value.CanSet() {
+			t.Errorf("field %s should not be settable", set[i].Info.MarshalName())
+		}
+	}
+	if o.Embeded != nil {
+		t.Errorf("the embedded pointer should not be allocated")
+	}
+
+	// an addressable value still gets its embedded pointer allocated
+	o2 := Outer{}
+	set2 := FetchStructFieldValueSetForWrite(reflect.ValueOf(&o2).Elem())
+	if o2.Embeded == nil {
+		t.Fatalf("the embedded pointer should have been allocated")
+	}
+	idx := set2.GetStructFieldIndex("name")
+	if idx < 0 {
+		t.Fatalf("field name not found")
+	}
+	if !set2[idx].Value.CanSet() {
+		t.Fatalf("the field of an allocated embedded struct should be settable")
+	}
+	set2[idx].Value.Set(reflect.ValueOf("x"))
+	if o2.Name != "x" {
+		t.Errorf("want x got %q", o2.Name)
+	}
+}
