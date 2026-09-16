@@ -226,3 +226,35 @@ func TestFillEmbededStructValueUnexported(t *testing.T) {
 		t.Errorf("should not fill an invalid container")
 	}
 }
+
+func TestFindAnonymouStructPointerUnexported(t *testing.T) {
+	type hidden struct {
+		A string
+	}
+	type Outer struct {
+		hidden
+	}
+
+	var hp *hidden
+	if err := FindAnonymouStructPointer(&Outer{}, &hp); err == nil {
+		t.Errorf("should not find an unexported embedded struct")
+	}
+	if hp != nil {
+		t.Errorf("want a nil pointer, got %v", hp)
+	}
+
+	// an exported embedded struct is still found
+	type Exported struct {
+		B string
+	}
+	type Outer2 struct {
+		Exported
+	}
+	var ep *Exported
+	if err := FindAnonymouStructPointer(&Outer2{}, &ep); err != nil {
+		t.Errorf("fail to find an exported embedded struct: %v", err)
+	}
+	if ep == nil {
+		t.Fatalf("want a pointer to the embedded struct")
+	}
+}

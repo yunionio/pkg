@@ -19,6 +19,7 @@ import (
 	"reflect"
 
 	"yunion.io/x/log"
+	"yunion.io/x/pkg/gotypes"
 )
 
 /*
@@ -172,15 +173,24 @@ func ExpandInterface(val interface{}) []interface{} {
 func getAnonymouStructPointer(structValue reflect.Value, targetType reflect.Type) interface{} {
 	structType := structValue.Type()
 	if structType == targetType {
+		if !structValue.CanInterface() {
+			// the value was reached through an unexported field
+			return nil
+		}
 		return structValue.Addr().Interface()
 	}
 	for i := 0; i < structValue.NumField(); i += 1 {
 		fieldType := structType.Field(i)
-		if fieldType.Anonymous && fieldType.Type.Kind() == reflect.Struct {
-			ptr := getAnonymouStructPointer(structValue.Field(i), targetType)
-			if ptr != nil {
-				return ptr
-			}
+		if !fieldType.Anonymous || fieldType.Type.Kind() != reflect.Struct {
+			continue
+		}
+		if !gotypes.IsFieldExportable(fieldType.Name) {
+			// an unexported embedded struct can not be pointed at
+			continue
+		}
+		ptr := getAnonymouStructPointer(structValue.Field(i), targetType)
+		if ptr != nil {
+			return ptr
 		}
 	}
 	return nil
