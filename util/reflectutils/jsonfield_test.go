@@ -735,3 +735,55 @@ func TestFetchStructFieldValueSetNonStruct(t *testing.T) {
 		t.Errorf("a struct value should still be enumerated")
 	}
 }
+
+func TestTagAccessors(t *testing.T) {
+	info := ParseFieldJsonInfo("Foo", reflect.StructTag(`json:"foo" name:"a-name" width:"36" nullable:"false"`))
+
+	if v, ok := info.Tag("width"); !ok || v != "36" {
+		t.Errorf("Tag(width) = %q, %v", v, ok)
+	}
+	if _, ok := info.Tag("nonexistent"); ok {
+		t.Errorf("Tag should not report a tag the field does not have")
+	}
+	if v, ok := info.Tag("nullable"); !ok || v != "false" {
+		t.Errorf("Tag(nullable) = %q, %v", v, ok)
+	}
+
+	// the map TagMap hands out belongs to the caller
+	m := info.TagMap()
+	if m["json"] != "foo" || m["name"] != "a-name" {
+		t.Errorf("TagMap = %v", m)
+	}
+	delete(m, "width")
+	m["injected"] = "x"
+	if _, ok := info.Tag("width"); !ok {
+		t.Errorf("TagMap should hand out a copy, modifying it changed the info")
+	}
+	if _, ok := info.Tag("injected"); ok {
+		t.Errorf("TagMap should hand out a copy, modifying it changed the info")
+	}
+}
+
+func TestTagMapDoesNotTouchTheCache(t *testing.T) {
+	type T struct {
+		Width string `width:"36" charset:"ascii"`
+	}
+	v := reflect.ValueOf(T{})
+
+	set := FetchStructFieldValueSet(v)
+	m := set[0].Info.TagMap()
+	delete(m, "width")
+	delete(m, "charset")
+	m["injected"] = "x"
+
+	set2 := FetchStructFieldValueSet(v)
+	if w, ok := set2[0].Info.Tag("width"); !ok || w != "36" {
+		t.Errorf("the tags of a later fetch were affected: width = %q, %v", w, ok)
+	}
+	if c, ok := set2[0].Info.Tag("charset"); !ok || c != "ascii" {
+		t.Errorf("the tags of a later fetch were affected: charset = %q, %v", c, ok)
+	}
+	if _, ok := set2[0].Info.Tag("injected"); ok {
+		t.Errorf("the tags of a later fetch were affected")
+	}
+}

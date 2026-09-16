@@ -29,6 +29,10 @@ import (
 // This struct has unexported fields initialized by exported functions in this
 // package.  Do not construct a literal or modify the exported fields in an
 // unmanaged way
+//
+// The tags of a field are meant to be read through Tag and TagMap rather than
+// off the Tags map, which is not handed out to stay writable by whoever read
+// it; a caller may modify what TagMap returns.
 type SStructFieldInfo struct {
 	// True if the field has json tag `json:"-"`
 	Ignore bool
@@ -69,7 +73,8 @@ type SStructFieldInfo struct {
 	ForceString bool
 
 	// Tags holds the tags of the field keyed by tag name, a tag without a
-	// value being mapped to the empty string
+	// value being mapped to the empty string.  Read it through Tag or
+	// TagMap rather than off here.
 	Tags map[string]string
 
 	// Aliases are the other names the field is looked up by, taken from
@@ -169,6 +174,23 @@ func (info *SStructFieldInfo) MarshalName() string {
 		return info.Name
 	}
 	return info.kebabFieldName
+}
+
+// Tag returns the value of the tag named name and whether the field has it.
+// A tag without a value is reported as present with an empty value.
+func (info *SStructFieldInfo) Tag(name string) (string, bool) {
+	val, ok := info.Tags[name]
+	return val, ok
+}
+
+// TagMap returns a copy of the tags of the field, which the caller owns and
+// is free to modify.
+func (info *SStructFieldInfo) TagMap() map[string]string {
+	tags := make(map[string]string, len(info.Tags))
+	for k, v := range info.Tags {
+		tags[k] = v
+	}
+	return tags
 }
 
 type SStructFieldValue struct {
