@@ -140,6 +140,10 @@ func SetStructFieldValue(structValue reflect.Value, fieldName string, val reflec
 	if !target.CanSet() {
 		return false
 	}
+	if !val.IsValid() || !val.Type().AssignableTo(target.Type()) {
+		// report a failure instead of letting reflect.Value.Set panic
+		return false
+	}
 	target.Set(val)
 	return true
 }

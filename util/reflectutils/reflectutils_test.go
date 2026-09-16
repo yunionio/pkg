@@ -168,3 +168,27 @@ func BenchmarkGetStructFieldIndexes2(b *testing.B) {
 		}
 	})
 }
+
+func TestSetStructFieldValueTypeMismatch(t *testing.T) {
+	type TestStruct struct {
+		Count int
+	}
+	val := TestStruct{}
+	dataValue := reflect.Indirect(reflect.ValueOf(&val))
+
+	if SetStructFieldValue(dataValue, "count", reflect.ValueOf("not an int")) {
+		t.Errorf("expected setting an incompatible value to fail")
+	}
+	if SetStructFieldValue(dataValue, "count", reflect.Value{}) {
+		t.Errorf("expected setting an invalid value to fail")
+	}
+	if val.Count != 0 {
+		t.Errorf("field should be untouched, got %d", val.Count)
+	}
+	if !SetStructFieldValue(dataValue, "count", reflect.ValueOf(3)) {
+		t.Errorf("expected setting a compatible value to succeed")
+	}
+	if val.Count != 3 {
+		t.Errorf("want 3 got %d", val.Count)
+	}
+}
