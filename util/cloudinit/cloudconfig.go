@@ -321,6 +321,9 @@ func (u *SUser) ShellScripts() []string {
 }
 
 func (conf *SCloudConfig) UserData() string {
+	if conf == nil {
+		return ""
+	}
 	var buf bytes.Buffer
 	jsonConf := jsonutils.Marshal(conf).(*jsonutils.JSONDict)
 	if jsonConf.Contains("users") {
@@ -337,6 +340,9 @@ func (conf *SCloudConfig) UserData() string {
 }
 
 func (conf *SCloudConfig) UserDataScript() string {
+	if conf == nil {
+		return ""
+	}
 	shells := []string{}
 	for _, u := range conf.Users {
 		shells = append(shells, u.ShellScripts()...)
@@ -429,7 +435,13 @@ func ParseUserData(data string) (*SCloudConfig, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "ParseYAML")
 	}
-	jsonDict := jsonConf.(*jsonutils.JSONDict)
+	jsonDict, ok := jsonConf.(*jsonutils.JSONDict)
+	if !ok {
+		// Anything that is valid YAML but not a mapping, e.g. a list or a
+		// scalar, is not a usable cloud-config document.
+		return nil, errors.Wrapf(errors.ErrInvalidFormat,
+			"cloud-config must be a YAML mapping, got %s", jsonConf.String())
+	}
 	if jsonDict.Contains("users") {
 		userArray := jsonutils.NewArray()
 		users, _ := jsonConf.GetArray("users")
