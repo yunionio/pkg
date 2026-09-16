@@ -231,9 +231,11 @@ func fetchStructFieldValueSet3(dataValue reflect.Value, allocatePtr bool, tags m
 		return SStructFieldValueSet{}
 	}
 	if allocatePtr && !dataValue.CanAddr() {
-		// The value can not be modified in place.  Allocating a nil
-		// embedded pointer would only produce a throwaway copy, so fall
-		// back to a read-only traversal instead.
+		// The value can not be modified in place, so a nil embedded
+		// pointer can not be allocated on it.  The fields of such a
+		// pointer are enumerated out of a value allocated on the side
+		// instead, the same way as when the caller does not ask for
+		// allocation; see the note below for how to write to them.
 		allocatePtr = false
 	}
 	fields := SStructFieldValueSet{}
