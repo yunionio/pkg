@@ -307,3 +307,93 @@ func TestEmbeddedPointerLookup(t *testing.T) {
 		t.Errorf("want the nested embedded pointer")
 	}
 }
+
+func TestSetFieldThroughNilEmbededStructPtr(t *testing.T) {
+	type Inner struct {
+		Name  string
+		Count int
+	}
+	type Outer struct {
+		*Inner
+	}
+
+	// the embedded pointer is put in place before the write
+	o := &Outer{}
+	if !SetStructFieldValue(reflect.ValueOf(o).Elem(), "name", reflect.ValueOf("x")) {
+		t.Fatalf("should be able to set the field")
+	}
+	if o.Inner == nil {
+		t.Fatalf("the embedded pointer should have been allocated")
+	}
+	if o.Name != "x" {
+		t.Errorf("want x got %q", o.Name)
+	}
+
+	val, ok := FindStructFieldValue(reflect.ValueOf(o).Elem(), "count")
+	if !ok {
+		t.Fatalf("should find the field")
+	}
+	val.Set(reflect.ValueOf(3))
+	if o.Count != 3 {
+		t.Errorf("want 3 got %d", o.Count)
+	}
+
+	// an already allocated embedded pointer is left alone
+	o2 := &Outer{Inner: &Inner{Name: "y"}}
+	if !SetStructFieldValue(reflect.ValueOf(o2).Elem(), "name", reflect.ValueOf("z")) {
+		t.Fatalf("should be able to set the field")
+	}
+	if o2.Name != "z" {
+		t.Errorf("want z got %q", o2.Name)
+	}
+
+	// a struct that can not hold the embedded pointer is reported as such
+	o3 := Outer{}
+	if SetStructFieldValue(reflect.ValueOf(o3), "name", reflect.ValueOf("w")) {
+		t.Errorf("should not report a write to a value that can not be modified")
+	}
+	if o3.Inner != nil {
+		t.Errorf("the embedded pointer should not have been allocated")
+	}
+	if _, ok := FindStructFieldValue(reflect.ValueOf(o3), "name"); ok {
+		t.Errorf("should not report a field that can not be written")
+	}
+}
+
+func TestNestedNilEmbededStructPtr(t *testing.T) {
+	type Leaf struct {
+		Value string
+	}
+	type Mid struct {
+		*Leaf
+	}
+	type Top struct {
+		*Mid
+	}
+
+	top := &Top{}
+	if !SetStructFieldValue(reflect.ValueOf(top).Elem(), "value", reflect.ValueOf("v")) {
+		t.Fatalf("should be able to set the field")
+	}
+	if top.Mid == nil {
+		t.Fatalf("the outer embedded pointer should have been allocated")
+	}
+	if top.Mid.Leaf == nil {
+		t.Fatalf("the inner embedded pointer should have been allocated")
+	}
+	if top.Value != "v" {
+		t.Errorf("want v got %q", top.Value)
+	}
+
+	// the outer pointer is set but the inner one is not
+	top2 := &Top{Mid: &Mid{}}
+	if !SetStructFieldValue(reflect.ValueOf(top2).Elem(), "value", reflect.ValueOf("w")) {
+		t.Fatalf("should be able to set the field")
+	}
+	if top2.Mid.Leaf == nil {
+		t.Fatalf("the inner embedded pointer should have been allocated")
+	}
+	if top2.Value != "w" {
+		t.Errorf("want w got %q", top2.Value)
+	}
+}
