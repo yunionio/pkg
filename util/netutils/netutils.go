@@ -181,12 +181,21 @@ func (ar IPV4AddrRange) ContainsRange(ar2 IPV4AddrRange) bool {
 	return ar.start <= ar2.start && ar.end >= ar2.end
 }
 
+// Random returns an address from the range, excluding end. A range that
+// covers a single address returns that address.
 func (ar IPV4AddrRange) Random() IPV4Addr {
-	return IPV4Addr(uint32(ar.start) + uint32(rand.Intn(int(uint32(ar.end)-uint32(ar.start)))))
+	if ar.start >= ar.end {
+		return ar.start
+	}
+	// int64 so the span of a very large range cannot overflow the argument
+	// to the random source.
+	span := int64(uint32(ar.end) - uint32(ar.start))
+	return IPV4Addr(uint32(ar.start) + uint32(rand.Int63n(span)))
 }
 
 func (ar IPV4AddrRange) AddressCount() int {
-	return int(uint32(ar.end) - uint32(ar.start) + 1)
+	// 64 bit arithmetic so a full range does not wrap around to zero.
+	return int(uint64(uint32(ar.end)) - uint64(uint32(ar.start)) + 1)
 }
 
 func (ar IPV4AddrRange) String() string {
