@@ -503,3 +503,39 @@ func TestAliases(t *testing.T) {
 		}
 	}
 }
+
+func TestNilEmbededStructPtrValue(t *testing.T) {
+	type Embeded struct {
+		Name string `json:"name"`
+	}
+	type Outer struct {
+		*Embeded
+	}
+
+	// the embedded pointer is nil
+	o := &Outer{}
+	set := FetchStructFieldValueSet(reflect.ValueOf(o).Elem())
+	if len(set) != 1 {
+		t.Fatalf("want 1 field, got %d", len(set))
+	}
+	if set[0].Value.CanSet() {
+		t.Errorf("the field of a nil embedded struct should not be settable")
+	}
+	if !set[0].Value.CanInterface() {
+		t.Errorf("the field of a nil embedded struct should still be readable")
+	}
+	if _, ok := FindStructFieldValue(reflect.ValueOf(o).Elem(), "name"); ok {
+		t.Errorf("should not report a nil embedded struct field as settable")
+	}
+
+	// once the embedded pointer is allocated the field is settable again
+	o2 := &Outer{Embeded: &Embeded{}}
+	val, ok := FindStructFieldValue(reflect.ValueOf(o2).Elem(), "name")
+	if !ok {
+		t.Fatalf("should find the field of an allocated embedded struct")
+	}
+	val.Set(reflect.ValueOf("x"))
+	if o2.Name != "x" {
+		t.Errorf("want x got %q", o2.Name)
+	}
+}

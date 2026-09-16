@@ -240,7 +240,10 @@ func fetchStructFieldValueSet3(dataValue reflect.Value, allocatePtr bool, tags m
 			continue
 		}
 
-		var efv *SEmbedStructFieldValue
+		var (
+			efv      *SEmbedStructFieldValue
+			detached bool
+		)
 		if sf.Anonymous {
 			// T, *T
 			switch fv.Kind() {
@@ -252,16 +255,24 @@ func fetchStructFieldValueSet3(dataValue reflect.Value, allocatePtr bool, tags m
 					if fv.Kind() == reflect.Ptr && allocatePtr {
 						fv.Set(reflect.New(fv.Type().Elem()))
 					} else if fv.Kind() == reflect.Ptr && !allocatePtr {
+						// The embedded pointer is nil.  Expose a detached
+						// zero value so that the fields can still be
+						// enumerated, but writes to them are refused
+						// rather than silently applied to a throwaway
+						// copy of the struct.
 						efv = &SEmbedStructFieldValue{
 							Field: fv,
-							Value: reflect.New(fv.Type().Elem()),
+							Value: reflect.Zero(fv.Type().Elem()),
 						}
 						fv = efv.Value
+						detached = true
 					} else {
 						continue
 					}
 				}
-				fv = fv.Elem()
+				if !detached {
+					fv = fv.Elem()
+				}
 			}
 			// note that we regard anonymous interface field the
 			// same as with anonymous struct field.  This is
