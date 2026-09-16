@@ -28,6 +28,7 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"syscall"
@@ -93,6 +94,122 @@ type sClient interface {
 	Do(req *http.Request) (*http.Response, error)
 }
 
+// Request body field names that carry a credential on their own, and
+// fragments that mark a name as carrying one.
+var sensitiveBodyKeyNames = []string{
+	"key", "code", "sig", "pwd", "auth", "ticket", "session", "sessionid",
+	// The plain name is a credential; "access_key_id" is an identifier and
+	// is deliberately not matched, so it stays readable in the message.
+	"access_key",
+}
+
+var sensitiveBodyKeyParts = []string{
+	"token", "secret", "password", "passwd", "signature", "credential",
+	"apikey", "api_key", "private_key",
+}
+
+func isSensitiveBodyKey(name string) bool {
+	lower := strings.ToLower(name)
+	if utils.IsInStringArray(lower, sensitiveBodyKeyNames) {
+		return true
+	}
+	for _, part := range sensitiveBodyKeyParts {
+		if strings.Contains(lower, part) {
+			return true
+		}
+	}
+	return false
+}
+
+// redactJSONObject returns obj with the values of credential carrying fields
+// replaced, at any depth.
+func redactJSONObject(obj jsonutils.JSONObject) jsonutils.JSONObject {
+	switch v := obj.(type) {
+	case *jsonutils.JSONDict:
+		redacted := jsonutils.NewDict()
+		for name, value := range v.Value() {
+			if isSensitiveBodyKey(name) {
+				redacted.Set(name, jsonutils.NewString("*"))
+			} else {
+				redacted.Set(name, redactJSONObject(value))
+			}
+		}
+		return redacted
+	case *jsonutils.JSONArray:
+		redacted := jsonutils.NewArray()
+		for _, value := range v.Value() {
+			redacted.Add(redactJSONObject(value))
+		}
+		return redacted
+	default:
+		return obj
+	}
+}
+
+// redactFormBody masks the credential carrying fields of an urlencoded body.
+func redactFormBody(body string) string {
+	values, err := url.ParseQuery(body)
+	if err != nil {
+		return redactBodyText(body)
+	}
+	changed := false
+	for name := range values {
+		if isSensitiveBodyKey(name) {
+			values.Set(name, "*")
+			changed = true
+		}
+	}
+	if !changed {
+		return body
+	}
+	return values.Encode()
+}
+
+// A credential carrying name as it appears in a body that cannot be walked
+// field by field, e.g. XML.
+const sensitiveBodyNamePattern = `(?i)[A-Za-z0-9_.:-]*(?:token|secret|password|passwd|signature|credential|apikey|api_key|private_key)[A-Za-z0-9_.:-]*`
+
+var (
+	xmlElementSensitiveRe = regexp.MustCompile(`(?is)(<` + sensitiveBodyNamePattern + `\b[^>]*>)([^<]*)(</)`)
+	xmlAttrSensitiveRe    = regexp.MustCompile(`(` + sensitiveBodyNamePattern + `)(\s*=\s*)("[^"]*")`)
+)
+
+// redactBodyText masks credential carrying elements and attributes of a body
+// that is not a structure this package can walk.
+func redactBodyText(body string) string {
+	body = xmlElementSensitiveRe.ReplaceAllString(body, "${1}*${3}")
+	body = xmlAttrSensitiveRe.ReplaceAllString(body, `${1}${2}"*"`)
+	return body
+}
+
+// redactRequestBody masks the credential carrying fields of a request body
+// before it is put into an error message. A body that cannot be interpreted
+// field by field is only included as a bounded excerpt, so that its contents
+// are not reproduced in full.
+func redactRequestBody(body, contType string) jsonutils.JSONObject {
+	if len(body) == 0 {
+		return nil
+	}
+	switch {
+	case strings.Contains(contType, "json"):
+		if parsed, err := jsonutils.ParseString(body); err == nil {
+			return redactJSONObject(parsed)
+		}
+	case strings.Contains(contType, "x-www-form-urlencoded"):
+		return jsonutils.NewString(redactFormBody(body))
+	case strings.Contains(contType, "xml"):
+		return jsonutils.NewString(redactBodyText(body))
+	}
+	const (
+		MAX_BODY   = 128
+		FIRST_PART = 100
+	)
+	if len(body) > MAX_BODY {
+		return jsonutils.NewString(body[:FIRST_PART] + "..." + body[len(body)-MAX_BODY+FIRST_PART+3:])
+	}
+	return nil
+}
+
 // body might have been consumed, so body is provided separately
 func newJsonClientErrorFromRequest(req *http.Request, body string) *JSONClientError {
 	return newJsonClientErrorFromRequest2(req.Method, req.URL.String(), req.Header, body)
@@ -113,21 +230,10 @@ func newJsonClientErrorFromRequest2(method string, urlStr string, hdrs http.Head
 		http.CanonicalHeaderKey("x-auth-token"),
 		http.CanonicalHeaderKey("x-subject-token"),
 	}
-	const (
-		MAX_BODY   = 128
-		FIRST_PART = 100
-	)
 	switch jce.Request.Method {
 	case "PUT", "POST", "PATCH":
 		contType := hdrs.Get(http.CanonicalHeaderKey("content-type"))
-		if len(body) > MAX_BODY {
-			jce.Request.Body = jsonutils.NewString(body[:FIRST_PART] + "..." + body[len(body)-MAX_BODY+FIRST_PART+3:])
-		} else if strings.Contains(contType, "json") {
-			jce.Request.Body, _ = jsonutils.ParseString(body)
-		} else if strings.Contains(contType, "xml") ||
-			strings.Contains(contType, "x-www-form-urlencoded") {
-			jce.Request.Body = jsonutils.NewString(body)
-		}
+		jce.Request.Body = redactRequestBody(body, contType)
 	default:
 		excludeHdrs = append(excludeHdrs, http.CanonicalHeaderKey("content-type"), http.CanonicalHeaderKey("content-length"))
 	}
@@ -233,13 +339,10 @@ func NewJsonClient(client sClient) *JsonClient {
 	return &JsonClient{client: client}
 }
 
+// Error renders the error as JSON. The request it carries is already masked
+// when the error is built, so this has no side effects and repeating it gives
+// the same message.
 func (e *JSONClientError) Error() string {
-	if !gotypes.IsNil(e.Request.Body) {
-		if body, ok := e.Request.Body.(*jsonutils.JSONDict); ok && body.Contains("password") {
-			body.Set("password", jsonutils.NewString("***"))
-			e.Request.Body = body
-		}
-	}
 	errMsg := JSONClientErrorMsg{Error: e}
 	return jsonutils.Marshal(errMsg).String()
 }
