@@ -512,31 +512,40 @@ func TestNilEmbededStructPtrValue(t *testing.T) {
 		*Embeded
 	}
 
-	// the embedded pointer is nil
+	// the embedded pointer is nil, the field is enumerated out of a value
+	// allocated on the side and reported through Parent
 	o := &Outer{}
 	set := FetchStructFieldValueSet(reflect.ValueOf(o).Elem())
 	if len(set) != 1 {
 		t.Fatalf("want 1 field, got %d", len(set))
 	}
-	if set[0].Value.CanSet() {
-		t.Errorf("the field of a nil embedded struct should not be settable")
-	}
 	if !set[0].Value.CanInterface() {
-		t.Errorf("the field of a nil embedded struct should still be readable")
+		t.Errorf("the field of a nil embedded struct should be readable")
 	}
-	if _, ok := FindStructFieldValue(reflect.ValueOf(o).Elem(), "name"); ok {
-		t.Errorf("should not report a nil embedded struct field as settable")
+	if set[0].Parent == nil || !set[0].Parent.Field.IsNil() {
+		t.Fatalf("want the nil embedded pointer to be reported as the parent")
 	}
 
-	// once the embedded pointer is allocated the field is settable again
+	// assigning Parent.Value to Parent.Field puts the enumerated fields back
+	// on the struct, which is what a caller has to do before writing to them
+	set[0].Parent.Field.Set(set[0].Parent.Value)
+	if o.Embeded == nil {
+		t.Fatalf("the embedded pointer should have been allocated")
+	}
+	set[0].Value.Set(reflect.ValueOf("x"))
+	if o.Name != "x" {
+		t.Errorf("want x got %q", o.Name)
+	}
+
+	// an embedded pointer that is already allocated needs no adoption
 	o2 := &Outer{Embeded: &Embeded{}}
 	val, ok := FindStructFieldValue(reflect.ValueOf(o2).Elem(), "name")
 	if !ok {
 		t.Fatalf("should find the field of an allocated embedded struct")
 	}
-	val.Set(reflect.ValueOf("x"))
-	if o2.Name != "x" {
-		t.Errorf("want x got %q", o2.Name)
+	val.Set(reflect.ValueOf("y"))
+	if o2.Name != "y" {
+		t.Errorf("want y got %q", o2.Name)
 	}
 }
 
@@ -555,10 +564,14 @@ func TestFetchStructFieldValueSetForWriteUnaddressable(t *testing.T) {
 	if len(set) != 2 {
 		t.Fatalf("want 2 fields, got %d", len(set))
 	}
-	for i := range set {
-		if set[i].Value.CanSet() {
-			t.Errorf("field %s should not be settable", set[i].Info.MarshalName())
-		}
+	// the field of the nil embedded pointer is enumerated out of a value
+	// allocated on the side, so only an ordinary field is checked here
+	idxOther := set.GetStructFieldIndex("other")
+	if idxOther < 0 {
+		t.Fatalf("field other not found")
+	}
+	if set[idxOther].Value.CanSet() {
+		t.Errorf("field other should not be settable")
 	}
 	if o.Embeded != nil {
 		t.Errorf("the embedded pointer should not be allocated")
