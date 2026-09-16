@@ -31,10 +31,25 @@ import (
 // unmanaged way
 type SStructFieldInfo struct {
 	// True if the field has json tag `json:"-"`
-	Ignore    bool
+	Ignore bool
+
+	// True if an empty string, slice, map, struct or dict is left out of
+	// the json object.  A number and a boolean are not governed by this,
+	// see OmitZero and OmitFalse.
+	//
+	// An empty value is left out by default, whether or not the json tag
+	// asks for it; `allowempty` turns that off and `omitempty` states it.
 	OmitEmpty bool
+
+	// True if a false boolean is left out of the json object.  A false is
+	// written by default; `omitfalse` turns that off and `allowfalse`
+	// states it.
 	OmitFalse bool
-	OmitZero  bool
+
+	// True if a zero number is left out of the json object.  A zero is
+	// written by default; `omitzero` turns that off and `allowzero` states
+	// it.
+	OmitZero bool
 
 	// Name can take the following values, in descreasing preference
 	//
@@ -42,12 +57,23 @@ type SStructFieldInfo struct {
 	//  2. name of "json" tag, when it's not for ignoration
 	//  3. kebab form of FieldName concatenated with "_" when Ignore is false
 	//  4. empty string
-	Name           string
-	FieldName      string
-	kebabFieldName string
-	ForceString    bool
-	Tags           map[string]string
+	Name string
 
+	// FieldName is the name of the go struct field
+	FieldName string
+
+	kebabFieldName string
+
+	// True if the field has the "string" json tag option, which writes the
+	// value as a json string
+	ForceString bool
+
+	// Tags holds the tags of the field keyed by tag name, a tag without a
+	// value being mapped to the empty string
+	Tags map[string]string
+
+	// Aliases are the other names the field is looked up by, taken from
+	// the "alias" tag
 	Aliases []string
 }
 
