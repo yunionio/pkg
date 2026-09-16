@@ -465,14 +465,28 @@ const (
 	multicastPrefix = "224.0.0.0/4"
 )
 
+// Ranges that cannot be a public address but are not part of the private
+// ranges used to classify guest addresses. They are consulted by
+// IsExitAddress only, so that IsPrivate keeps its current meaning for the
+// callers that use it for address allocation and DHCP.
+var reservedPrefixes = []string{
+	"0.0.0.0/8",       // "this network"
+	"192.0.2.0/24",    // TEST-NET-1
+	"198.51.100.0/24", // TEST-NET-2
+	"203.0.113.0/24",  // TEST-NET-3
+	"240.0.0.0/4",     // reserved, includes the limited broadcast address
+}
+
 var privateIPRanges []IPV4AddrRange
 var customizedPrivateIPRanges []IPV4AddrRange
+var reservedIPRanges []IPV4AddrRange
 var hostLocalIPRange IPV4AddrRange
 var linkLocalIPRange IPV4AddrRange
 var multicastIPRange IPV4AddrRange
 
 func init() {
 	initPrivateIPRanges()
+	initReservedIPRanges()
 
 	prefix, _ := NewIPV4Prefix(hostlocalPrefix)
 	hostLocalIPRange = prefix.ToIPRange()
@@ -500,6 +514,22 @@ func initPrivateIPRanges() {
 		}
 		privateIPRanges[i] = prefix.ToIPRange()
 	}
+}
+
+func initReservedIPRanges() {
+	reservedIPRanges = make([]IPV4AddrRange, 0, len(reservedPrefixes))
+	for _, prefix := range reservedPrefixes {
+		p, err := NewIPV4Prefix(prefix)
+		if err != nil {
+			continue
+		}
+		reservedIPRanges = append(reservedIPRanges, p.ToIPRange())
+	}
+}
+
+// GetReservedIPRanges returns the ranges that IsReserved consults.
+func GetReservedIPRanges() []IPV4AddrRange {
+	return append([]IPV4AddrRange(nil), reservedIPRanges...)
 }
 
 func SetPrivatePrefixes(pref []string) {
@@ -538,8 +568,23 @@ func IsMulticast(addr IPV4Addr) bool {
 	return multicastIPRange.Contains(addr)
 }
 
+// IsReserved reports whether addr is in a range that is reserved and can
+// never be a public address.
+func IsReserved(addr IPV4Addr) bool {
+	for _, ipRange := range reservedIPRanges {
+		if ipRange.Contains(addr) {
+			return true
+		}
+	}
+	return false
+}
+
+// IsExitAddress reports whether addr can be a public address, i.e. one that a
+// guest can reach directly. Reserved ranges are excluded along with the
+// private, host local, link local and multicast ones.
 func IsExitAddress(addr IPV4Addr) bool {
-	return !IsPrivate(addr) && !IsHostLocal(addr) && !IsLinkLocal(addr) && !IsMulticast(addr)
+	return !IsPrivate(addr) && !IsReserved(addr) &&
+		!IsHostLocal(addr) && !IsLinkLocal(addr) && !IsMulticast(addr)
 }
 
 func MacUnpackHex(mac string) string {
