@@ -392,6 +392,25 @@ func Mask2Len(mask IPV4Addr) int8 {
 	return int8(bits.LeadingZeros32(^uint32(mask)))
 }
 
+// ParsePrefix parses an IPv4 prefix written as "address/masklen", or as a
+// bare address, which is taken to be a /32. An empty string parses as
+// 0.0.0.0/32 rather than being rejected.
+//
+// The prefix length may also be written as a dotted-decimal mask, e.g.
+// "10.0.0.0/255.0.0.0". A dotted mask is converted by counting its leading
+// one bits, so the result always has a contiguous mask:
+// "1.2.3.4/255.0.255.0" yields 1.0.0.0/8 rather than being rejected.
+//
+// The numeric form is read with strconv.Atoi, so it also accepts a leading
+// sign and leading zeros: "+8" and "024" parse as 8 and 24.
+//
+// These accepted forms are more permissive than net.ParseCIDR. Note that
+// regutils.MatchCIDR and regutils.MatchIP4Addr reject the dotted-mask and
+// leading-zero spellings that this function accepts, so a value checked with
+// one of those and then normalised here can end up covering something other
+// than what was checked. Prefer net.ParseCIDR where the stricter grammar is
+// wanted; the lenient spellings are kept for compatibility with prefixes
+// already stored by callers.
 func ParsePrefix(prefix string) (IPV4Addr, int8, error) {
 	slash := strings.IndexByte(prefix, '/')
 	if slash > 0 {
