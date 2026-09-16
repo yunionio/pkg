@@ -19,6 +19,7 @@ import (
 	"reflect"
 
 	"yunion.io/x/log"
+	"yunion.io/x/pkg/gotypes"
 )
 
 /*
@@ -172,15 +173,34 @@ func ExpandInterface(val interface{}) []interface{} {
 func getAnonymouStructPointer(structValue reflect.Value, targetType reflect.Type) interface{} {
 	structType := structValue.Type()
 	if structType == targetType {
+		if !structValue.CanInterface() {
+			// the value was reached through an unexported field
+			return nil
+		}
 		return structValue.Addr().Interface()
 	}
 	for i := 0; i < structValue.NumField(); i += 1 {
 		fieldType := structType.Field(i)
-		if fieldType.Anonymous && fieldType.Type.Kind() == reflect.Struct {
-			ptr := getAnonymouStructPointer(structValue.Field(i), targetType)
-			if ptr != nil {
-				return ptr
+		if !fieldType.Anonymous || !gotypes.IsFieldExportable(fieldType.Name) {
+			// an unexported embedded struct can not be pointed at
+			continue
+		}
+		fieldValue := structValue.Field(i)
+		fieldT := fieldType.Type
+		if fieldT.Kind() == reflect.Ptr {
+			// an embedded pointer that is nil has nothing to point at
+			if fieldValue.IsNil() {
+				continue
 			}
+			fieldValue = fieldValue.Elem()
+			fieldT = fieldT.Elem()
+		}
+		if fieldT.Kind() != reflect.Struct {
+			continue
+		}
+		ptr := getAnonymouStructPointer(fieldValue, targetType)
+		if ptr != nil {
+			return ptr
 		}
 	}
 	return nil
@@ -225,11 +245,18 @@ func StructContains(type1 reflect.Type, type2 reflect.Type) bool {
 	}
 	for i := 0; i < type1.NumField(); i += 1 {
 		field := type1.Field(i)
-		if field.Anonymous && field.Type.Kind() == reflect.Struct {
-			contains := StructContains(field.Type, type2)
-			if contains {
-				return true
-			}
+		if !field.Anonymous {
+			continue
+		}
+		fieldType := field.Type
+		if fieldType.Kind() == reflect.Ptr {
+			fieldType = fieldType.Elem()
+		}
+		if fieldType.Kind() != reflect.Struct {
+			continue
+		}
+		if StructContains(fieldType, type2) {
+			return true
 		}
 	}
 	return false
