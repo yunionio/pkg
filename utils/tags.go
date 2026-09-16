@@ -167,13 +167,14 @@ func TagMap(tag reflect.StructTag) map[string]string {
 			break
 		}
 		i = skipEmpty(str, i)
-		if i >= len(str) || strings.IndexByte(EMPTYSTR, str[i]) >= 0 {
-			val = ""
-		} else if str[i] != ':' {
-			panic(fmt.Sprintf("Invalid structTag: %s", tag))
-		} else {
+		if i < len(str) && str[i] == ':' {
 			i++
 			val, i = findWord(str, i)
+		} else {
+			// A fragment that is not followed by a value takes no value.
+			// It is kept as a key so that the scan carries on with the
+			// fragments that follow it, rather than dropping them.
+			val = ""
 		}
 		ret[k] = val
 		i = skipEmpty(str, i)

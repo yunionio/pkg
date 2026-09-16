@@ -169,3 +169,39 @@ func TestSplitCSV(t *testing.T) {
 		}
 	}
 }
+
+func TestTagMapMalformed(t *testing.T) {
+	cases := []struct {
+		Tag  string
+		Want map[string]string
+	}{
+		{
+			Tag:  `json:"name"`,
+			Want: map[string]string{"json": "name"},
+		},
+		{
+			Tag:  `json:"name" nullable:"false"`,
+			Want: map[string]string{"json": "name", "nullable": "false"},
+		},
+		{
+			// a fragment without a colon takes no value, the scan carries on
+			// with the fragments that follow it
+			Tag:  `json:"name" charset="ascii" nullable:"false"`,
+			Want: map[string]string{"json": "name", `charset="ascii"`: "", "nullable": "false"},
+		},
+		{
+			Tag:  `json:"name" charset="ascii"`,
+			Want: map[string]string{"json": "name", `charset="ascii"`: ""},
+		},
+		{
+			Tag:  ``,
+			Want: map[string]string{},
+		},
+	}
+	for _, c := range cases {
+		got := TagMap(reflect.StructTag(c.Tag))
+		if !reflect.DeepEqual(got, c.Want) {
+			t.Errorf("TagMap(%q) got %v want %v", c.Tag, got, c.Want)
+		}
+	}
+}
