@@ -72,6 +72,9 @@ func expandAmbiguousPrefix(fields SStructFieldValueSet) SStructFieldValueSet {
 				if depBy, ok := fields[idx].Info.Tags[TAG_OLD_DEPRECATED_BY]; ok {
 					fields[idx].Info.Tags[TAG_OLD_DEPRECATED_BY] = fmt.Sprintf("%s%s", amPrefix, depBy)
 				}
+				for i := range fields[idx].Info.Aliases {
+					fields[idx].Info.Aliases[i] = fmt.Sprintf("%s%s", amPrefix, fields[idx].Info.Aliases[i])
+				}
 				prefixed[idx] = true
 				changed = true
 			}

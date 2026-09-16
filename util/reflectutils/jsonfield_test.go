@@ -653,3 +653,35 @@ func TestExpandAmbiguousPrefixFixedPoint(t *testing.T) {
 		t.Errorf("want b_name to be expanded, got %v", seen)
 	}
 }
+
+func TestExpandAmbiguousPrefixAliases(t *testing.T) {
+	type Embeded struct {
+		Name string `json:"name" alias:"the_name"`
+	}
+	type Struct1 struct {
+		Embeded
+	}
+	type Struct2 struct {
+		Embeded
+	}
+	type TopStruct struct {
+		Struct1 `yunion-ambiguous-prefix:"a_"`
+		Struct2 `yunion-ambiguous-prefix:"b_"`
+	}
+
+	set := FetchStructFieldValueSet(reflect.ValueOf(TopStruct{}))
+	for _, name := range []string{"a_name", "b_name"} {
+		if len(set.GetStructFieldIndexes2(name, true)) != 1 {
+			t.Errorf("key %s not expanded", name)
+		}
+	}
+	// aliases are expanded along with the name
+	for _, name := range []string{"a_the_name", "b_the_name"} {
+		if len(set.GetStructFieldIndexes2(name, false)) != 1 {
+			t.Errorf("alias %s not expanded", name)
+		}
+	}
+	if len(set.GetStructFieldIndexes2("the_name", false)) != 0 {
+		t.Errorf("the plain alias should not match any field any more")
+	}
+}
