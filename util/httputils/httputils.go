@@ -93,6 +93,53 @@ type sClient interface {
 	Do(req *http.Request) (*http.Response, error)
 }
 
+// Query parameter names that carry a credential on their own, and fragments
+// that mark a name as carrying one.
+var sensitiveQueryParamNames = []string{
+	"key", "code", "sig", "pwd", "auth", "ticket", "session", "sessionid",
+}
+
+var sensitiveQueryParamParts = []string{
+	"token", "secret", "password", "passwd", "signature", "credential",
+	"apikey", "api_key", "access_key", "private_key",
+}
+
+func isSensitiveQueryParam(name string) bool {
+	lower := strings.ToLower(name)
+	if utils.IsInStringArray(lower, sensitiveQueryParamNames) {
+		return true
+	}
+	for _, part := range sensitiveQueryParamParts {
+		if strings.Contains(lower, part) {
+			return true
+		}
+	}
+	return false
+}
+
+// redactURL masks the values of query parameters that commonly carry a
+// credential, so that an error message can name the request without
+// reproducing the secret. A URL with nothing to mask is returned unchanged.
+func redactURL(urlStr string) string {
+	parsed, err := url.Parse(urlStr)
+	if err != nil || len(parsed.RawQuery) == 0 {
+		return urlStr
+	}
+	query := parsed.Query()
+	changed := false
+	for name := range query {
+		if isSensitiveQueryParam(name) {
+			query.Set(name, "*")
+			changed = true
+		}
+	}
+	if !changed {
+		return urlStr
+	}
+	parsed.RawQuery = query.Encode()
+	return parsed.String()
+}
+
 // body might have been consumed, so body is provided separately
 func newJsonClientErrorFromRequest(req *http.Request, body string) *JSONClientError {
 	return newJsonClientErrorFromRequest2(req.Method, req.URL.String(), req.Header, body)
@@ -102,7 +149,7 @@ func newJsonClientErrorFromRequest2(method string, urlStr string, hdrs http.Head
 	jce := &JSONClientError{}
 
 	jce.Request.Method = strings.ToUpper(method)
-	jce.Request.Url = urlStr
+	jce.Request.Url = redactURL(urlStr)
 	jce.Request.Headers = make(map[string]string)
 	excludeHdrs := []string{
 		"Accept",
@@ -112,6 +159,8 @@ func newJsonClientErrorFromRequest2(method string, urlStr string, hdrs http.Head
 		http.CanonicalHeaderKey("authorization"),
 		http.CanonicalHeaderKey("x-auth-token"),
 		http.CanonicalHeaderKey("x-subject-token"),
+		http.CanonicalHeaderKey("cookie"),
+		http.CanonicalHeaderKey("set-cookie"),
 	}
 	const (
 		MAX_BODY   = 128
