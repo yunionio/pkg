@@ -258,3 +258,52 @@ func TestFindAnonymouStructPointerUnexported(t *testing.T) {
 		t.Fatalf("want a pointer to the embedded struct")
 	}
 }
+
+func TestEmbeddedPointerLookup(t *testing.T) {
+	type Inner struct {
+		A string
+	}
+	type Outer struct {
+		*Inner
+	}
+
+	// StructContains follows an embedded pointer
+	if !StructContains(reflect.TypeOf(Outer{}), reflect.TypeOf(Inner{})) {
+		t.Errorf("StructContains should follow an embedded pointer")
+	}
+
+	// a non nil embedded pointer is found
+	o := &Outer{Inner: &Inner{A: "x"}}
+	var ip *Inner
+	if err := FindAnonymouStructPointer(o, &ip); err != nil {
+		t.Errorf("fail to find through an embedded pointer: %v", err)
+	}
+	if ip != o.Inner {
+		t.Errorf("want the embedded pointer itself")
+	}
+
+	// a nil embedded pointer has nothing to point at
+	ip = nil
+	if err := FindAnonymouStructPointer(&Outer{}, &ip); err == nil {
+		t.Errorf("should not find through a nil embedded pointer")
+	}
+	if ip != nil {
+		t.Errorf("want a nil pointer, got %v", ip)
+	}
+
+	// nested embedding, a pointer inside a value
+	type Mid struct {
+		*Inner
+	}
+	type Top struct {
+		Mid
+	}
+	top := &Top{Mid: Mid{Inner: &Inner{A: "y"}}}
+	var ip2 *Inner
+	if err := FindAnonymouStructPointer(top, &ip2); err != nil {
+		t.Errorf("fail to find through nested embedding: %v", err)
+	}
+	if ip2 != top.Mid.Inner {
+		t.Errorf("want the nested embedded pointer")
+	}
+}
