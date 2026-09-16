@@ -13,7 +13,7 @@ require (
 	github.com/tredoe/osutil v1.5.0
 	github.com/ulikunitz/xz v0.5.12
 	golang.org/x/sys v0.0.0-20220412211240-33da011f77ad
-	golang.org/x/text v0.3.6
+	golang.org/x/text v0.3.7
 	moul.io/http2curl/v2 v2.3.0
 	yunion.io/x/jsonutils v0.0.0-20220106020632-953b71a4c3a8
 	yunion.io/x/log v1.0.0
