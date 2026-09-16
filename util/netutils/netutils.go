@@ -369,9 +369,17 @@ func (ar IPV4AddrRange) equals(ar2 IPV4AddrRange) bool {
 	return ar.start == ar2.start && ar.end == ar2.end
 }
 
+// Masklen2Mask returns the network mask for a prefix length.
+//
+// A length above 32 cannot be represented and is treated as 32, i.e. a single
+// host, rather than shifting past the width of the mask and wrapping around to
+// a match-all mask.
 func Masklen2Mask(maskLen int8) IPV4Addr {
 	if maskLen < 0 {
 		panic("negative masklen")
+	}
+	if maskLen > 32 {
+		maskLen = 32
 	}
 	return IPV4Addr(^(uint32(1<<(32-uint8(maskLen))) - 1))
 }
@@ -447,7 +455,15 @@ func NewIPV4Prefix(prefix string) (IPV4Prefix, error) {
 	return pref, nil
 }
 
+// NewIPV4PrefixFromAddr builds a prefix from an address and a prefix length.
+//
+// A length above 32 is clamped to 32 so that the stored MaskLen always agrees
+// with the address and range it describes. A negative length keeps its
+// existing behaviour of panicking.
 func NewIPV4PrefixFromAddr(addr IPV4Addr, masklen int8) IPV4Prefix {
+	if masklen > 32 {
+		masklen = 32
+	}
 	pref := IPV4Prefix{
 		Address: addr.NetAddr(masklen),
 		MaskLen: masklen,
