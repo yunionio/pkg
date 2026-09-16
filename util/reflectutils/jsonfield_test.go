@@ -698,3 +698,40 @@ func TestExpandAmbiguousPrefixAliases(t *testing.T) {
 		t.Errorf("the plain alias should not match any field any more")
 	}
 }
+
+func TestFetchStructFieldValueSetNonStruct(t *testing.T) {
+	type T struct {
+		Name string `json:"name"`
+	}
+	var nilPtr *T
+	values := []reflect.Value{
+		reflect.ValueOf(3),
+		reflect.ValueOf("str"),
+		reflect.ValueOf(nilPtr),
+		reflect.ValueOf([]string{"a"}),
+		reflect.Value{},
+		reflect.ValueOf(nil),
+	}
+	fetchers := []struct {
+		name string
+		f    func(reflect.Value) SStructFieldValueSet
+	}{
+		{"FetchStructFieldValueSet", FetchStructFieldValueSet},
+		{"FetchStructFieldValueSetForWrite", FetchStructFieldValueSetForWrite},
+		{"FetchAllStructFieldValueSet", FetchAllStructFieldValueSet},
+		{"FetchAllStructFieldValueSetForWrite", FetchAllStructFieldValueSetForWrite},
+	}
+	for _, fetcher := range fetchers {
+		for _, v := range values {
+			set := fetcher.f(v)
+			if len(set) != 0 {
+				t.Errorf("%s(%v) want no field, got %d", fetcher.name, v, len(set))
+			}
+		}
+	}
+
+	// a struct value is still enumerated
+	if len(FetchStructFieldValueSet(reflect.ValueOf(T{}))) != 1 {
+		t.Errorf("a struct value should still be enumerated")
+	}
+}
