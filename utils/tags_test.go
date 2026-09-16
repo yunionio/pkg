@@ -37,10 +37,9 @@ func TestFindWord(t *testing.T) {
 
 func TestFindWords(t *testing.T) {
 	cases := []struct {
-		name  string
-		in    string
-		want  []string
-		panic bool
+		name string
+		in   string
+		want []string
 	}{
 		{
 			name: "double quoted",
@@ -53,28 +52,48 @@ func TestFindWords(t *testing.T) {
 			want: []string{`2018-08-31 15:20:33`},
 		},
 		{
-			name:  "panic",
-			in:    `2018-08-31 15:20:33`,
-			panic: true,
+			// A colon is one of the separators, so a bare timestamp splits
+			// further; quoting it keeps it whole, as above.
+			name: "space separated",
+			in:   `2018-08-31 15:20:33`,
+			want: []string{"2018-08-31", "15", "20", "33"},
+		},
+		{
+			name: "comma separated",
+			in:   `a,b`,
+			want: []string{"a", "b"},
+		},
+		{
+			name: "mixed separators",
+			in:   `a, b:c	d`,
+			want: []string{"a", "b", "c", "d"},
+		},
+		{
+			name: "addresses",
+			in:   `10.0.0.1 10.0.0.2`,
+			want: []string{"10.0.0.1", "10.0.0.2"},
+		},
+		{
+			name: "closing bracket terminates",
+			in:   `a]b`,
+			want: []string{"a", "b"},
+		},
+		{
+			name: "empty",
+			in:   ``,
+			want: []string{},
+		},
+		{
+			name: "trailing separator",
+			in:   `a,b,`,
+			want: []string{"a", "b"},
 		},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			defer func() {
-				v := recover()
-				if v != nil {
-					if !c.panic {
-						t.Fatalf("panic: %s", v)
-					}
-				} else {
-					if c.panic {
-						t.Fatalf("want panic, but did not happen")
-					}
-				}
-			}()
 			got := FindWords([]byte(c.in), 0)
 			if !reflect.DeepEqual(got, c.want) {
-				t.Errorf("want %#v, got %#v", c.want, got)
+				t.Errorf("FindWords(%q) = %#v, want %#v", c.in, got, c.want)
 			}
 		})
 	}
