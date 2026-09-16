@@ -225,6 +225,11 @@ func fetchStructFieldValueSet2(dataValue reflect.Value, allocatePtr bool, tags m
 }
 
 func fetchStructFieldValueSet3(dataValue reflect.Value, allocatePtr bool, tags map[string]string, includeIgnore bool, parent *SEmbedStructFieldValue) SStructFieldValueSet {
+	if !dataValue.IsValid() || dataValue.Kind() != reflect.Struct {
+		// A zero Value, a nil or a non struct value has no field to
+		// enumerate.  Report it as such rather than through a panic.
+		return SStructFieldValueSet{}
+	}
 	if allocatePtr && !dataValue.CanAddr() {
 		// The value can not be modified in place.  Allocating a nil
 		// embedded pointer would only produce a throwaway copy, so fall
