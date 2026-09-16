@@ -94,8 +94,10 @@ type sClient interface {
 	Do(req *http.Request) (*http.Response, error)
 }
 
-// Request body field names that carry a credential on their own, and
-// fragments that mark a name as carrying one.
+// Field and parameter names that carry a credential on their own, and
+// fragments that mark a name as carrying one. The same lists are used for the
+// fields of a request body and the parameters of a request URL, so that the
+// two cannot drift apart.
 var sensitiveBodyKeyNames = []string{
 	"key", "code", "sig", "pwd", "auth", "ticket", "session", "sessionid",
 	// The plain name is a credential; "access_key_id" is an identifier and
@@ -119,6 +121,30 @@ func isSensitiveBodyKey(name string) bool {
 		}
 	}
 	return false
+}
+
+// redactURL masks the values of query parameters that commonly carry a
+// credential, so that an error message can name the request without
+// reproducing the secret. A URL with nothing to mask is returned unchanged,
+// byte for byte, so no existing message is reformatted.
+func redactURL(urlStr string) string {
+	parsed, err := url.Parse(urlStr)
+	if err != nil || len(parsed.RawQuery) == 0 {
+		return urlStr
+	}
+	query := parsed.Query()
+	changed := false
+	for name := range query {
+		if isSensitiveBodyKey(name) {
+			query.Set(name, "*")
+			changed = true
+		}
+	}
+	if !changed {
+		return urlStr
+	}
+	parsed.RawQuery = query.Encode()
+	return parsed.String()
 }
 
 // redactJSONObject returns obj with the values of credential carrying fields
@@ -244,7 +270,7 @@ func newJsonClientErrorFromRequest2(method string, urlStr string, hdrs http.Head
 	jce := &JSONClientError{}
 
 	jce.Request.Method = strings.ToUpper(method)
-	jce.Request.Url = urlStr
+	jce.Request.Url = redactURL(urlStr)
 	jce.Request.Headers = make(map[string]string)
 	excludeHdrs := []string{
 		"Accept",
@@ -254,6 +280,8 @@ func newJsonClientErrorFromRequest2(method string, urlStr string, hdrs http.Head
 		http.CanonicalHeaderKey("authorization"),
 		http.CanonicalHeaderKey("x-auth-token"),
 		http.CanonicalHeaderKey("x-subject-token"),
+		http.CanonicalHeaderKey("cookie"),
+		http.CanonicalHeaderKey("set-cookie"),
 	}
 	switch jce.Request.Method {
 	case "PUT", "POST", "PATCH":
