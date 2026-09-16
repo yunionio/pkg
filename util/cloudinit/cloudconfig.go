@@ -106,15 +106,41 @@ func shellQuote(s string) string {
 	return "'" + strings.ReplaceAll(s, "'", `'\''`) + "'"
 }
 
-// validUserName reports whether name can be used as a user name. A name that
-// carries a control character would otherwise end up splitting a generated
-// line, or a line of a file that is written out.
+// validUserName reports whether name can be used as a user name.
+//
+// The set is deliberately narrow. A name becomes a directory under /home, a
+// file name under /etc/sudoers.d and an argument to useradd, so a slash or a
+// ".." would move the files that are written, and a control character would
+// split a generated line. Leading "-" is refused so the name cannot be read as
+// an option.
 func validUserName(name string) bool {
-	if len(name) == 0 {
+	if len(name) == 0 || name == "." || name == ".." || name[0] == '-' {
 		return false
 	}
 	for i := 0; i < len(name); i++ {
-		if name[i] < 0x20 || name[i] == 0x7f {
+		c := name[i]
+		switch {
+		case c >= 'a' && c <= 'z', c >= 'A' && c <= 'Z', c >= '0' && c <= '9':
+		case c == '_' || c == '-' || c == '.':
+		default:
+			return false
+		}
+	}
+	return true
+}
+
+// validWritePath reports whether path may be written by a generated script.
+//
+// Quoting keeps a path from running as a command, but a path that walks up out
+// of its directory would still write somewhere else. A path carrying a ".."
+// element is refused rather than normalised, so that what is written is what
+// was asked for.
+func validWritePath(filePath string) bool {
+	if len(filePath) == 0 {
+		return false
+	}
+	for _, elem := range strings.Split(filePath, "/") {
+		if elem == ".." {
 			return false
 		}
 	}
@@ -122,18 +148,41 @@ func validUserName(name string) bool {
 }
 
 // escapePowerShell escapes a value for use inside a PowerShell double quoted
-// string, where a backtick introduces an escape and $ introduces a variable.
+// string, where a backtick introduces an escape, $ introduces a variable, and
+// a control character written literally would break the line it sits on.
 func escapePowerShell(s string) string {
-	return strings.NewReplacer("`", "``", `"`, "`\"", "$", "`$").Replace(s)
+	return strings.NewReplacer(
+		"`", "``",
+		`"`, "`\"",
+		"$", "`$",
+		"\r", "`r",
+		"\n", "`n",
+		"\t", "`t",
+		"\x00", "`0",
+	).Replace(s)
 }
 
 const heredocPrefix = "_YUNION_EOF_"
 
-// heredocTerminator returns a terminator that is not expected to appear in the
-// content being written, so that a line of the content cannot end the heredoc
-// early. Quote it at the use site so the shell does not expand the content.
-func heredocTerminator() string {
-	return heredocPrefix + utils.GenRequestId(8)
+// heredocTerminator returns a terminator that does not occur in content, so
+// that a line of the content cannot end the heredoc early. Quote it at the use
+// site so the shell does not expand the content.
+//
+// The generated value is checked against the content rather than assumed to be
+// unique: utils.GenRequestId returns the empty string if the random source is
+// unavailable, which would otherwise leave a fixed, guessable terminator.
+func heredocTerminator(content string) string {
+	return uniqueTerminator(heredocPrefix+utils.GenRequestId(8), content)
+}
+
+// uniqueTerminator returns term with underscores appended until it does not
+// occur in content. Each pass lengthens it, so this ends once it is longer
+// than the content and can no longer occur in it.
+func uniqueTerminator(term, content string) string {
+	for strings.Contains(content, term) {
+		term += "_"
+	}
+	return term
 }
 
 func setFilePermission(path, permission, owner string) []string {
@@ -151,7 +200,7 @@ func setFilePermission(path, permission, owner string) []string {
 // redirection and the path are quoted, and the heredoc is quoted with a
 // terminator that is not expected to occur in the content.
 func mkWriteFileCmd(redirect, filePath, content, permission, owner string) []string {
-	terminator := heredocTerminator()
+	terminator := heredocTerminator(content)
 	cmds := []string{
 		fmt.Sprintf("mkdir -p %s", shellQuote(path.Dir(filePath))),
 		fmt.Sprintf("cat %s %s <<'%s'\n%s\n%s", redirect, shellQuote(filePath), terminator, content, terminator),
@@ -168,6 +217,10 @@ func mkAppendFileCmd(path string, content string, permission string, owner strin
 }
 
 func (wf *SWriteFile) ShellScripts() []string {
+	if !validWritePath(wf.Path) {
+		log.Errorf("cloudinit: skipping write_file with a path that walks up out of its directory: %q", wf.Path)
+		return nil
+	}
 	content := wf.Content
 	if wf.Encoding == "b64" {
 		_content, _ := base64.StdEncoding.DecodeString(wf.Content)
@@ -223,19 +276,15 @@ func (u *SUser) PowerShellScripts() []string {
 		log.Errorf("cloudinit: skipping scripts for unusable user name %q", u.Name)
 		return nil
 	}
+	// Every line below is parsed by PowerShell first, so the name and the
+	// password are escaped the same way. Using the unescaped name for one of
+	// the lines would have them name different accounts.
 	name := escapePowerShell(u.Name)
 	shells := []string{}
 	shells = append(shells, fmt.Sprintf(`New-LocalUser -Name "%s" -Description "A New Local Account Created By PowerShell" -NoPassword`, name))
 	shells = append(shells, fmt.Sprintf(`Add-LocalGroupMember -Group "Administrators" -Member "%s"`, name))
 	if len(u.PlainTextPasswd) > 0 {
-		// net is a cmd builtin and has no way to escape a quote inside a
-		// quoted argument, so a value carrying one is left out rather than
-		// written in a form that would break out of it.
-		if strings.ContainsAny(u.Name, `"`) || strings.ContainsAny(u.PlainTextPasswd, `"`) {
-			log.Errorf("cloudinit: not setting the password of %q, it contains a quote", u.Name)
-		} else {
-			shells = append(shells, fmt.Sprintf(`net user "%s" "%s"`, u.Name, u.PlainTextPasswd))
-		}
+		shells = append(shells, fmt.Sprintf(`net user "%s" "%s"`, name, escapePowerShell(u.PlainTextPasswd)))
 	}
 	// enable需要再设置密码之后，否则会出现Enable-LocalUser : Unable to update the password. The value provided for the new password does not meet the length, complexity, or history requirements of the domain
 	shells = append(shells, fmt.Sprintf(`Enable-LocalUser "%s"`, name))
