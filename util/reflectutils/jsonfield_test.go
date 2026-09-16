@@ -582,3 +582,106 @@ func TestFetchStructFieldValueSetForWriteUnaddressable(t *testing.T) {
 		t.Errorf("want x got %q", o2.Name)
 	}
 }
+
+func TestExpandAmbiguousPrefixCollision(t *testing.T) {
+	type Embeded struct {
+		Name string `json:"name"`
+	}
+	type Struct1 struct {
+		Embeded
+	}
+	type Struct2 struct {
+		Embeded
+
+		VpcName string `json:"vpc_name"`
+	}
+	type TopStruct struct {
+		Struct1 `yunion-ambiguous-prefix:"vpc_"`
+		Struct2
+	}
+
+	// the prefix would take over the name of Struct2.VpcName, so Struct1's
+	// Name keeps its original name instead
+	set := FetchStructFieldValueSet(reflect.ValueOf(TopStruct{}))
+	cases := []struct {
+		Key   string
+		Count int
+	}{
+		{"vpc_name", 1},
+		{"name", 2},
+	}
+	for _, c := range cases {
+		indexes := set.GetStructFieldIndexes2(c.Key, true)
+		if len(indexes) != c.Count {
+			t.Errorf("key %s expect %d got %d", c.Key, c.Count, len(indexes))
+		}
+	}
+}
+
+func TestExpandAmbiguousPrefixFixedPoint(t *testing.T) {
+	type Embeded struct {
+		Name string `json:"name"`
+	}
+	type Struct1 struct {
+		Embeded
+	}
+	type Struct2 struct {
+		Embeded
+	}
+	type Named struct {
+		AName string `json:"a_name"`
+	}
+	type TopStruct struct {
+		Struct1 `yunion-ambiguous-prefix:"a_"`
+		Struct2 `yunion-ambiguous-prefix:"b_"`
+		Named
+	}
+
+	// a_ is taken by Named.AName, so Struct1 keeps name and Struct2 is
+	// expanded, leaving every name used by exactly one field
+	set := FetchStructFieldValueSet(reflect.ValueOf(TopStruct{}))
+	seen := make(map[string]int)
+	for i := range set {
+		seen[set[i].Info.MarshalName()]++
+	}
+	for k, c := range seen {
+		if c != 1 {
+			t.Errorf("key %s used by %d fields, want 1", k, c)
+		}
+	}
+	if _, ok := seen["b_name"]; !ok {
+		t.Errorf("want b_name to be expanded, got %v", seen)
+	}
+}
+
+func TestExpandAmbiguousPrefixAliases(t *testing.T) {
+	type Embeded struct {
+		Name string `json:"name" alias:"the_name"`
+	}
+	type Struct1 struct {
+		Embeded
+	}
+	type Struct2 struct {
+		Embeded
+	}
+	type TopStruct struct {
+		Struct1 `yunion-ambiguous-prefix:"a_"`
+		Struct2 `yunion-ambiguous-prefix:"b_"`
+	}
+
+	set := FetchStructFieldValueSet(reflect.ValueOf(TopStruct{}))
+	for _, name := range []string{"a_name", "b_name"} {
+		if len(set.GetStructFieldIndexes2(name, true)) != 1 {
+			t.Errorf("key %s not expanded", name)
+		}
+	}
+	// aliases are expanded along with the name
+	for _, name := range []string{"a_the_name", "b_the_name"} {
+		if len(set.GetStructFieldIndexes2(name, false)) != 1 {
+			t.Errorf("alias %s not expanded", name)
+		}
+	}
+	if len(set.GetStructFieldIndexes2("the_name", false)) != 0 {
+		t.Errorf("the plain alias should not match any field any more")
+	}
+}
