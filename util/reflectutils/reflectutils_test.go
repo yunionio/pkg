@@ -192,3 +192,37 @@ func TestSetStructFieldValueTypeMismatch(t *testing.T) {
 		t.Errorf("want 3 got %d", val.Count)
 	}
 }
+
+func TestFillEmbededStructValueUnexported(t *testing.T) {
+	type unexported struct {
+		Id   string
+		Name string
+	}
+	type Exported struct {
+		Age int
+	}
+	type Outer struct {
+		unexported
+		Exported
+	}
+
+	o := Outer{}
+	if FillEmbededStructValue(reflect.ValueOf(&o).Elem(), reflect.ValueOf(unexported{Id: "1"})) {
+		t.Errorf("should not fill an unexported embedded struct")
+	}
+	if FillEmbededStructValue(reflect.ValueOf(o), reflect.ValueOf(Exported{Age: 3})) {
+		t.Errorf("should not fill through a value that can not be modified")
+	}
+	if o.Age != 0 {
+		t.Errorf("an unaddressable value should not be modified, got %d", o.Age)
+	}
+	if !FillEmbededStructValue(reflect.ValueOf(&o).Elem(), reflect.ValueOf(Exported{Age: 3})) {
+		t.Errorf("fail to fill an exported embedded struct")
+	}
+	if o.Age != 3 {
+		t.Errorf("want 3 got %d", o.Age)
+	}
+	if FillEmbededStructValue(reflect.Value{}, reflect.ValueOf(Exported{})) {
+		t.Errorf("should not fill an invalid container")
+	}
+}
