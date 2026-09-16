@@ -427,6 +427,42 @@ func GetClient(insecure bool, timeout time.Duration) *http.Client {
 	return getClient(insecure, false, timeout)
 }
 
+// Session headers that a caller of this package sets, and that must not
+// travel to a host the request was not made to. net/http already drops
+// Authorization, Cookie and the proxy headers in that case, but does not know
+// about these.
+var redirectSensitiveHeaders = []string{
+	"X-Auth-Token",
+	"X-Subject-Token",
+}
+
+// isSameOrSubdomain reports whether dest is initial, or a subdomain of it.
+// A redirect to a parent domain is not covered, matching the rule net/http
+// uses for the headers it strips.
+func isSameOrSubdomain(initial, dest *url.URL) bool {
+	i := strings.ToLower(initial.Hostname())
+	d := strings.ToLower(dest.Hostname())
+	if i == d {
+		return true
+	}
+	return strings.HasSuffix(d, "."+i)
+}
+
+// checkRedirect drops the session headers above when a redirect leaves the
+// host the request was made to, and keeps the usual limit on how many
+// redirects are followed.
+func checkRedirect(req *http.Request, via []*http.Request) error {
+	if len(via) >= 10 {
+		return errors.Errorf("stopped after 10 redirects")
+	}
+	if len(via) > 0 && !isSameOrSubdomain(via[0].URL, req.URL) {
+		for _, h := range redirectSensitiveHeaders {
+			req.Header.Del(h)
+		}
+	}
+	return nil
+}
+
 func getClient(insecure bool, legacyTLS bool, timeout time.Duration) *http.Client {
 	adaptive := false
 	if timeout == 0 {
@@ -434,7 +470,8 @@ func getClient(insecure bool, legacyTLS bool, timeout time.Duration) *http.Clien
 	}
 	tr := getTransport(insecure, legacyTLS, adaptive, timeout)
 	return &http.Client{
-		Transport: tr,
+		Transport:     tr,
+		CheckRedirect: checkRedirect,
 		// 一个完整http request的超时时间
 		// Timeout specifies a time limit for requests made by this
 		// Client. The timeout includes connection time, any
