@@ -147,47 +147,76 @@ func redactJSONObject(obj jsonutils.JSONObject) jsonutils.JSONObject {
 }
 
 // redactFormBody masks the credential carrying fields of an urlencoded body.
+//
+// The body is walked pair by pair rather than through url.ParseQuery, which
+// stops at the first pair it cannot decode: the pairs it did decode are still
+// returned, but taking only the value it returns would either drop the rest of
+// the body or, if the raw body were used instead, leave the credential in it.
 func redactFormBody(body string) string {
-	values, err := url.ParseQuery(body)
-	if err != nil {
-		return redactBodyText(body)
-	}
+	parts := strings.Split(body, "&")
 	changed := false
-	for name := range values {
+	for i, part := range parts {
+		eq := strings.IndexByte(part, '=')
+		if eq < 0 {
+			continue
+		}
+		name := part[:eq]
+		if decoded, err := url.QueryUnescape(name); err == nil {
+			name = decoded
+		}
 		if isSensitiveBodyKey(name) {
-			values.Set(name, "*")
+			parts[i] = part[:eq+1] + "*"
 			changed = true
 		}
 	}
 	if !changed {
 		return body
 	}
-	return values.Encode()
+	return strings.Join(parts, "&")
 }
 
 // A credential carrying name as it appears in a body that cannot be walked
-// field by field, e.g. XML.
+// field by field, e.g. XML, or a JSON document that did not parse.
 const sensitiveBodyNamePattern = `(?i)[A-Za-z0-9_.:-]*(?:token|secret|password|passwd|signature|credential|apikey|api_key|private_key)[A-Za-z0-9_.:-]*`
 
 var (
-	xmlElementSensitiveRe = regexp.MustCompile(`(?is)(<` + sensitiveBodyNamePattern + `\b[^>]*>)([^<]*)(</)`)
-	xmlAttrSensitiveRe    = regexp.MustCompile(`(` + sensitiveBodyNamePattern + `)(\s*=\s*)("[^"]*")`)
+	// <name>value</name>, where the value may be a CDATA section
+	xmlElementSensitiveRe = regexp.MustCompile(
+		`(?is)(<` + sensitiveBodyNamePattern + `\b[^>]*>)(?:\s*<!\[CDATA\[.*?\]\]>|[^<]*)(</)`)
+	// name="value" or name='value'
+	xmlAttrSensitiveRe = regexp.MustCompile(
+		`(` + sensitiveBodyNamePattern + `)(\s*=\s*)("[^"]*"|'[^']*')`)
+	// "name": "value", and the same without quotes
+	jsonFieldSensitiveRe = regexp.MustCompile(
+		`(?i)("` + sensitiveBodyNamePattern + `"\s*:\s*)("[^"]*"|[^,}\s]+)`)
 )
 
-// redactBodyText masks credential carrying elements and attributes of a body
-// that is not a structure this package can walk.
+// redactBodyText masks credential carrying elements, attributes and fields of
+// a body that is not a structure this package can walk.
 func redactBodyText(body string) string {
-	body = xmlElementSensitiveRe.ReplaceAllString(body, "${1}*${3}")
+	// The value alternative is not a capturing group, so the closing tag is
+	// group 2.
+	body = xmlElementSensitiveRe.ReplaceAllString(body, "${1}*${2}")
 	body = xmlAttrSensitiveRe.ReplaceAllString(body, `${1}${2}"*"`)
+	body = jsonFieldSensitiveRe.ReplaceAllString(body, "${1}*")
 	return body
 }
 
+// maxRedactedBodyBytes bounds how large a body put into an error message can
+// be. A larger body is left out rather than cut down: a cut keeps whichever
+// part of the body happened to fall inside it.
+const maxRedactedBodyBytes = 4096
+
 // redactRequestBody masks the credential carrying fields of a request body
-// before it is put into an error message. A body that cannot be interpreted
-// field by field is only included as a bounded excerpt, so that its contents
-// are not reproduced in full.
+// before it is put into an error message.
+//
+// A body whose content type is not one this package can walk field by field is
+// left out entirely. There is no way to tell which part of it is a credential,
+// and an excerpt would keep whichever part happened to fall inside the excerpt
+// — a multipart body, for instance, names its fields in a header line, so
+// masking the names would leave the values readable.
 func redactRequestBody(body, contType string) jsonutils.JSONObject {
-	if len(body) == 0 {
+	if len(body) == 0 || len(body) > maxRedactedBodyBytes {
 		return nil
 	}
 	switch {
@@ -195,17 +224,13 @@ func redactRequestBody(body, contType string) jsonutils.JSONObject {
 		if parsed, err := jsonutils.ParseString(body); err == nil {
 			return redactJSONObject(parsed)
 		}
+		// A JSON body that does not parse is still masked by field name,
+		// since the names survive in the text.
+		return jsonutils.NewString(redactBodyText(body))
 	case strings.Contains(contType, "x-www-form-urlencoded"):
 		return jsonutils.NewString(redactFormBody(body))
 	case strings.Contains(contType, "xml"):
 		return jsonutils.NewString(redactBodyText(body))
-	}
-	const (
-		MAX_BODY   = 128
-		FIRST_PART = 100
-	)
-	if len(body) > MAX_BODY {
-		return jsonutils.NewString(body[:FIRST_PART] + "..." + body[len(body)-MAX_BODY+FIRST_PART+3:])
 	}
 	return nil
 }

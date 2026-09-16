@@ -101,6 +101,32 @@ func TestRedactFormBody(t *testing.T) {
 	}
 }
 
+// A pair that cannot be decoded must not stop the pairs around it from being
+// masked, and must not cause the raw body to be used instead of the masked
+// one. url.ParseQuery does return the pairs it did decode alongside its error,
+// so taking only its return value would either drop them or leak them.
+func TestRedactFormBodyWithUndecodablePair(t *testing.T) {
+	cases := []struct {
+		name string
+		body string
+	}{
+		{"bad escape first", "bad=%ZZ&username=admin&password=hunter2"},
+		{"bad escape last", "username=admin&password=hunter2&bad=%ZZ"},
+		{"bad escape in the middle", "username=admin&bad=%ZZ&password=hunter2"},
+		{"percent encoded name", "username=admin&%70assword=hunter2"},
+		{"pair without a value", "username=admin&password&flag"},
+	}
+	for _, c := range cases {
+		msg := errorBody(t, "application/x-www-form-urlencoded", c.body)
+		if strings.Contains(msg, "hunter2") {
+			t.Errorf("%s: password survived into the message: %s", c.name, msg)
+		}
+		if !strings.Contains(msg, "admin") {
+			t.Errorf("%s: the non-sensitive value was lost: %s", c.name, msg)
+		}
+	}
+}
+
 func TestRedactXMLBody(t *testing.T) {
 	cases := []struct {
 		name    string
@@ -113,9 +139,34 @@ func TestRedactXMLBody(t *testing.T) {
 			secrets: []string{"hunter2"},
 		},
 		{
-			name:    "attribute",
+			name:    "attribute, double quoted",
 			body:    `<Login Username="admin" SecretKey="shh123" />`,
 			secrets: []string{"shh123"},
+		},
+		{
+			name:    "attribute, single quoted",
+			body:    `<Login Username='admin' SecretKey='shh123' />`,
+			secrets: []string{"shh123"},
+		},
+		{
+			name:    "attribute, unquoted is not an attribute value",
+			body:    `<Login Username="admin" SecretKey="shh123">x</Login>`,
+			secrets: []string{"shh123"},
+		},
+		{
+			name:    "CDATA section",
+			body:    `<Login><Username>admin</Username><Password><![CDATA[hunter2]]></Password></Login>`,
+			secrets: []string{"hunter2"},
+		},
+		{
+			name:    "CDATA across lines",
+			body:    "<Login><Username>admin</Username><Password><![CDATA[line1\nhunter2\n]]></Password></Login>",
+			secrets: []string{"hunter2"},
+		},
+		{
+			name:    "empty element then a real one",
+			body:    `<Login><Username>admin</Username><Password></Password><Token>abc123</Token></Login>`,
+			secrets: []string{"abc123"},
 		},
 	}
 	for _, c := range cases {
@@ -131,24 +182,76 @@ func TestRedactXMLBody(t *testing.T) {
 	}
 }
 
-// A body that cannot be walked field by field is only included as a bounded
-// excerpt, whatever its content type.
-func TestUninterpretableBodyIsTruncated(t *testing.T) {
-	body := strings.Repeat("Z", 4096)
-	msg := errorBody(t, "application/octet-stream", body)
-	if strings.Contains(msg, body) {
-		t.Error("the whole body was reproduced in the message")
+// A body that cannot be walked field by field is left out, whatever its size.
+//
+// A multipart body names its fields in a header line, so masking the names
+// would leave the values readable — the body has to go rather than be masked.
+func TestUninterpretableBodyIsOmitted(t *testing.T) {
+	cases := []struct {
+		name     string
+		contType string
+		body     string
+		secret   string
+	}{
+		{
+			name:     "multipart",
+			contType: "multipart/form-data; boundary=----b",
+			body:     "------b\r\nContent-Disposition: form-data; name=\"password\"\r\n\r\nhunter2\r\n------b--\r\n",
+			secret:   "hunter2",
+		},
+		{
+			name:     "small unknown type",
+			contType: "application/octet-stream",
+			body:     "small",
+			secret:   "small",
+		},
+		{
+			name:     "large unknown type",
+			contType: "application/octet-stream",
+			body:     strings.Repeat("Z", 4096),
+			secret:   "ZZZZ",
+		},
+		{
+			name:     "no content type",
+			contType: "",
+			body:     `{"username":"admin","password":"hunter2"}`,
+			secret:   "hunter2",
+		},
 	}
-	if !strings.Contains(msg, "...") {
-		t.Error("the excerpt is not marked as truncated")
+	for _, c := range cases {
+		msg := errorBody(t, c.contType, c.body)
+		if strings.Contains(msg, c.secret) {
+			t.Errorf("%s: %q was reproduced in the message: %s", c.name, c.secret, msg)
+		}
 	}
 }
 
-// A small body of a type this package does not understand is left out.
-func TestUnknownContentTypeSmallBodyIsOmitted(t *testing.T) {
-	msg := errorBody(t, "application/octet-stream", "small")
-	if strings.Contains(msg, "small") {
-		t.Errorf("an uninterpretable body was included: %s", msg)
+// A body larger than the bound is left out rather than cut down, because a cut
+// keeps whichever part happened to fall inside it.
+func TestOversizedBodyIsOmitted(t *testing.T) {
+	for _, contType := range []string{"application/json", "application/xml", "application/x-www-form-urlencoded"} {
+		body := strings.Repeat("a", maxRedactedBodyBytes+1)
+		msg := errorBody(t, contType, body)
+		if strings.Contains(msg, "aaaa") {
+			t.Errorf("%s: an oversized body was included: %s", contType, msg)
+		}
+	}
+	// Just inside the bound is still included.
+	msg := errorBody(t, "application/x-www-form-urlencoded", "password=x&"+strings.Repeat("a", 16))
+	if strings.Contains(msg, "password=x") {
+		t.Errorf("a body inside the bound was not masked: %s", msg)
+	}
+}
+
+// A JSON body that does not parse still has its field names in the text, so
+// the values can still be masked.
+func TestMalformedJSONBodyIsStillMasked(t *testing.T) {
+	msg := errorBody(t, "application/json", `{"username":"admin","password":"hunter2",`)
+	if strings.Contains(msg, "hunter2") {
+		t.Errorf("password survived into the message: %s", msg)
+	}
+	if !strings.Contains(msg, "admin") {
+		t.Errorf("the non-sensitive value was lost: %s", msg)
 	}
 }
 
