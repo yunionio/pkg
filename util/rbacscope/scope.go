@@ -51,6 +51,12 @@ func String2Scope(str string) TRbacScope {
 	return String2ScopeDefault(str, ScopeProject)
 }
 
+// String2ScopeDefault maps a scope name to a TRbacScope, returning defScope
+// for anything it does not recognise — including the empty string, which is
+// treated as "use the caller's default" rather than as ScopeNone.
+//
+// The literal "true" is an accepted spelling of ScopeSystem, kept for
+// compatibility with callers that pass the value of a boolean setting.
 func String2ScopeDefault(str string, defScope TRbacScope) TRbacScope {
 	switch strings.ToLower(str) {
 	case string(ScopeSystem):
@@ -61,6 +67,9 @@ func String2ScopeDefault(str string, defScope TRbacScope) TRbacScope {
 		return ScopeProject
 	case string(ScopeUser):
 		return ScopeUser
+	case string(ScopeNone):
+		return ScopeNone
+	// Compatibility spelling, see the note above.
 	case "true":
 		return ScopeSystem
 	default:
