@@ -152,9 +152,41 @@ type SStructFieldValue struct {
 	Parent *SEmbedStructFieldValue
 }
 
+// SEmbedStructFieldValue ties the fields enumerated for a nil embedded struct
+// to the struct they belong to.  Field is the embedded pointer on the struct,
+// Value is the value the fields were enumerated out of, and Parent is the
+// entry of the enclosing embedded struct, if any.
 type SEmbedStructFieldValue struct {
 	Field reflect.Value
 	Value reflect.Value
+
+	Parent *SEmbedStructFieldValue
+}
+
+// adoptEmbeddedStruct assigns Value to Field for every nil embedded struct
+// the field was enumerated through, which puts the enumerated fields back on
+// the struct.  The assignments are made from the outermost embedded struct
+// inwards, so that each one lands on a struct that is already part of the
+// real one.  It reports whether the field is backed by the struct afterwards,
+// which is what writing to it requires.
+func (v *SStructFieldValue) adoptEmbeddedStruct() bool {
+	chain := make([]*SEmbedStructFieldValue, 0, 2)
+	for p := v.Parent; p != nil; p = p.Parent {
+		chain = append(chain, p)
+	}
+	for i := len(chain) - 1; i >= 0; i -= 1 {
+		p := chain[i]
+		if !p.Field.IsValid() || p.Field.Kind() != reflect.Ptr || !p.Field.IsNil() {
+			// nothing to adopt, the pointer is already there
+			continue
+		}
+		if !p.Field.CanSet() {
+			// the struct can not hold the embedded pointer
+			return false
+		}
+		p.Field.Set(p.Value)
+	}
+	return true
 }
 
 type SStructFieldValueSet []SStructFieldValue
@@ -273,8 +305,9 @@ func fetchStructFieldValueSet3(dataValue reflect.Value, allocatePtr bool, tags m
 						// the struct.  Callers writing to those fields
 						// must do so first.
 						efv = &SEmbedStructFieldValue{
-							Field: fv,
-							Value: reflect.New(fv.Type().Elem()),
+							Field:  fv,
+							Value:  reflect.New(fv.Type().Elem()),
+							Parent: parent,
 						}
 						fv = efv.Value
 					} else {

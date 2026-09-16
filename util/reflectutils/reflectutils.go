@@ -97,13 +97,19 @@ func fetchStructFieldNameValues(dataType reflect.Type, dataValue reflect.Value, 
 }
 */
 
+// FindStructFieldValue returns the field of dataValue named name.  The field
+// has to be writable, so a field reached through a nil embedded pointer is
+// only returned once that pointer has been put in place, which this does.
 func FindStructFieldValue(dataValue reflect.Value, name string) (reflect.Value, bool) {
 	set := FetchStructFieldValueSet(dataValue)
-	val, find := set.GetValue(name)
-	if find && val.CanSet() {
-		return val, true
+	idx := set.GetStructFieldIndex(name)
+	if idx < 0 {
+		return reflect.Value{}, false
 	}
-	return reflect.Value{}, false
+	if !set[idx].adoptEmbeddedStruct() || !set[idx].Value.CanSet() {
+		return reflect.Value{}, false
+	}
+	return set[idx].Value, true
 }
 
 func FindStructFieldInterface(dataValue reflect.Value, name string) (interface{}, bool) {
@@ -139,12 +145,19 @@ func FillEmbededStructValue(container reflect.Value, embed reflect.Value) bool {
 	return false
 }
 
+// SetStructFieldValue sets the field of structValue named fieldName to val.
+// A field reached through a nil embedded pointer is written only once that
+// pointer has been put in place, which this does.
 func SetStructFieldValue(structValue reflect.Value, fieldName string, val reflect.Value) bool {
 	set := FetchStructFieldValueSet(structValue)
-	target, find := set.GetValue(fieldName)
-	if !find {
+	idx := set.GetStructFieldIndex(fieldName)
+	if idx < 0 {
 		return false
 	}
+	if !set[idx].adoptEmbeddedStruct() {
+		return false
+	}
+	target := set[idx].Value
 	if !target.CanSet() {
 		return false
 	}
