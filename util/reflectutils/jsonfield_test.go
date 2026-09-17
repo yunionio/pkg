@@ -40,7 +40,8 @@ func TestParseStructFieldJsonInfo_Name(t *testing.T) {
 
 		name := ""
 		marshalName := ""
-		for _, kv := range strings.Split(sfi.Tags["validate"], ",") {
+		validate, _ := sfi.Tag("validate")
+		for _, kv := range strings.Split(validate, ",") {
 			switch {
 			case strings.HasPrefix(kv, "name="):
 				name = kv[5:]
@@ -199,7 +200,7 @@ func TestOverrideStructTagsCompond(t *testing.T) {
 		set := FetchStructFieldValueSet(reflect.ValueOf(c.Object))
 		got := make(map[string]map[string]string)
 		for _, s := range set {
-			got[s.Info.MarshalName()] = s.Info.Tags
+			got[s.Info.MarshalName()] = s.Info.TagMap()
 		}
 		if !reflect.DeepEqual(got, c.Want) {
 			t.Errorf("Got: %s Want: %s", got, c.Want)
@@ -261,8 +262,8 @@ func TestOverrideStructTags(t *testing.T) {
 	}
 	for _, c := range cases {
 		set := FetchStructFieldValueSet(reflect.ValueOf(c.Object))
-		if !reflect.DeepEqual(set[0].Info.Tags, c.Want) {
-			t.Errorf("Got: %s Want: %s", set[0].Info.Tags, c.Want)
+		if !reflect.DeepEqual(set[0].Info.TagMap(), c.Want) {
+			t.Errorf("Got: %s Want: %s", set[0].Info.TagMap(), c.Want)
 		}
 	}
 }
@@ -785,5 +786,138 @@ func TestTagMapDoesNotTouchTheCache(t *testing.T) {
 	}
 	if _, ok := set2[0].Info.Tag("injected"); ok {
 		t.Errorf("the tags of a later fetch were affected")
+	}
+}
+
+// 经带 tag 的内嵌取到的字段会覆盖 tag，不能污染缓存里那份
+func TestTagOverrideNotLeaking(t *testing.T) {
+	type Embeded struct {
+		Name  string `json:"name" update:"user"`
+		Other string `json:"other" alias:"the_alias"`
+	}
+	type Tagged struct {
+		Embeded `update:"admin" create:"required"`
+	}
+	type Plain struct {
+		Embeded
+	}
+
+	for _, f := range FetchStructFieldValueSet(reflect.ValueOf(Tagged{})) {
+		tags := f.Info.TagMap()
+		t.Logf("tagged: %-6s tags=%v", f.Info.MarshalName(), tags)
+	}
+	byName := map[string]SStructFieldValue{}
+	for _, f := range FetchStructFieldValueSet(reflect.ValueOf(Plain{})) {
+		if _, ok := f.Info.Tag("create"); ok {
+			t.Errorf("%s: create 泄漏进缓存了: %v", f.Info.MarshalName(), f.Info.TagMap())
+		}
+		byName[f.Info.FieldName] = f
+	}
+	if got, _ := byName["Name"].Info.Tag("update"); got != "user" {
+		t.Errorf("Name: want update=user got %q", got)
+	}
+	// 读取 unexported 字段是包内测试的特权，外部只能读到 TagMap
+	if got := byName["Other"].Info.aliases; len(got) != 1 || got[0] != "the_alias" {
+		t.Errorf("Other: aliases 被改动了: %v", got)
+	}
+}
+
+// 歧义前缀会改 Name/tags/aliases，同样不能污染缓存
+func TestAmbiguousPrefixNotLeaking(t *testing.T) {
+	type Embeded struct {
+		Name string `json:"name" yunion-deprecated-by:"name2" alias:"the_name"`
+	}
+	type S1 struct{ Embeded }
+	type S2 struct{ Embeded }
+	type Prefixed struct {
+		S1 `yunion-ambiguous-prefix:"a_"`
+		S2 `yunion-ambiguous-prefix:"b_"`
+	}
+	type Plain struct{ Embeded }
+
+	for _, f := range FetchStructFieldValueSet(reflect.ValueOf(Prefixed{})) {
+		dep, _ := f.Info.Tag(TAG_DEPRECATED_BY)
+		t.Logf("prefixed: %-8s dep=%-10q aliases=%v", f.Info.MarshalName(), dep, f.Info.aliases)
+	}
+	for _, f := range FetchStructFieldValueSet(reflect.ValueOf(Plain{})) {
+		if f.Info.Name != "name" {
+			t.Errorf("want the cached name, got %q", f.Info.Name)
+		}
+		if dep, _ := f.Info.Tag(TAG_DEPRECATED_BY); dep != "name2" {
+			t.Errorf("deprecated-by 泄漏: %q", dep)
+		}
+		if got := f.Info.aliases; len(got) != 1 || got[0] != "the_name" {
+			t.Errorf("aliases 泄漏: %v", got)
+		}
+	}
+}
+
+// 并发：共享缓存下必须无竞态、无串扰
+func TestFieldInfoConcurrent(t *testing.T) {
+	type Embeded struct {
+		Name string `json:"name"`
+	}
+	type Tagged struct {
+		Embeded `update:"admin" create:"required"`
+	}
+	type Plain struct{ Embeded }
+
+	done := make(chan struct{})
+	for i := 0; i < 8; i++ {
+		go func(i int) {
+			defer func() { done <- struct{}{} }()
+			for j := 0; j < 400; j++ {
+				if i%2 == 0 {
+					_ = FetchStructFieldValueSet(reflect.ValueOf(Tagged{}))
+				} else {
+					for _, f := range FetchStructFieldValueSet(reflect.ValueOf(Plain{})) {
+						if _, ok := f.Info.Tag("create"); ok {
+							t.Errorf("并发下 tag 覆盖泄漏进缓存")
+							return
+						}
+					}
+				}
+			}
+		}(i)
+	}
+	for i := 0; i < 8; i++ {
+		<-done
+	}
+}
+
+// 带 tag 覆盖的内嵌结构体：字段的 tag 被覆写，info 需要私有化
+type BTInner struct {
+	A string
+	B string
+}
+type BTOuter struct {
+	BTInner `update:"admin" create:"required" default:"emily"`
+	C       string
+}
+
+func BenchmarkFetchStructFieldValueSetTagged(b *testing.B) {
+	v := reflect.ValueOf(BTOuter{})
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		_ = FetchStructFieldValueSet(v)
+	}
+}
+
+// 歧义前缀路径：字段被改名
+type BAInner struct {
+	Name string `json:"name"`
+}
+type BAS1 struct{ BAInner }
+type BAS2 struct{ BAInner }
+type BATop struct {
+	BAS1 `yunion-ambiguous-prefix:"a_"`
+	BAS2 `yunion-ambiguous-prefix:"b_"`
+}
+
+func BenchmarkFetchStructFieldValueSetAmbiguous(b *testing.B) {
+	v := reflect.ValueOf(BATop{})
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		_ = FetchStructFieldValueSet(v)
 	}
 }
