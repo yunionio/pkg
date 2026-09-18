@@ -14,13 +14,16 @@
 
 package jsonutils
 
-import (
-	"yunion.io/x/pkg/util/reflectutils"
-)
+type sJsonMarshalSession struct {
+	nodeIndex   int
+	objectTrace *sJsonPointerTrace
+	nodeMap     map[int]*sJsonPointerNode
+}
 
-const (
-	TAG_DEPRECATED_BY = reflectutils.TAG_DEPRECATED_BY
-
-	// maxParseDepth is the maximum nesting level accepted by the parser
-	maxParseDepth = 10000
-)
+func newJsonMarshalSession() *sJsonMarshalSession {
+	return &sJsonMarshalSession{
+		nodeIndex:   0,
+		objectTrace: newJsonPointerTrace(),
+		nodeMap:     make(map[int]*sJsonPointerNode),
+	}
+}
